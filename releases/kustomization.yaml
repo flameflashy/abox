@@ -4,3 +4,4 @@ kind: Kustomization
 resources:
   - agentgateway.yaml
   - kagent.yaml
+  - echo-mcp-server.yaml

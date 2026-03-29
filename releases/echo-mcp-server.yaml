@@ -1,0 +1,52 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: mcp
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: echo-mcp-server
+  namespace: mcp
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: echo-mcp-server
+  template:
+    metadata:
+      labels:
+        app: echo-mcp-server
+    spec:
+      containers:
+        - name: echo-mcp-server
+          image: node:20
+          workingDir: /app
+          command: ["sh", "-c"]
+          args:
+            - npx -y @muhtalipdede/echo-mcp-server
+          ports:
+            - containerPort: 3000
+          readinessProbe:
+            tcpSocket:
+              port: 3000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: 3000
+            initialDelaySeconds: 15
+            periodSeconds: 20
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: echo-mcp-server
+  namespace: mcp
+spec:
+  selector:
+    app: echo-mcp-server
+  ports:
+    - name: http
+      port: 3000
+      targetPort: 3000

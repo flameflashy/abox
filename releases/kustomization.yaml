@@ -5,3 +5,4 @@ resources:
   - agentgateway.yaml
   - kagent.yaml
   - echo-mcp-server.yaml
+  - echo-agent.yaml

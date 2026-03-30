@@ -48,6 +48,7 @@ resource "kubectl_manifest" "rsip" {
       url: ${var.oci_registry}/releases
       filter:
         includeTag: "^\\d+\\.\\d+\\.\\d+$"
+        semver: ">=0.0.0"
         limit: 1
       defaultValues:
         tag: "${var.releases_version}"

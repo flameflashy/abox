@@ -47,7 +47,7 @@ resource "kubectl_manifest" "rsip" {
       type: OCIArtifactTag
       url: ${var.oci_registry}/releases
       filter:
-        includeTag: "^v?\\d+\\.\\d+\\.\\d+$"
+        includeTag: "^\\d+\\.\\d+\\.\\d+$"
         limit: 1
       defaultValues:
         tag: "${var.releases_version}"

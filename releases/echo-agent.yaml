@@ -1,0 +1,28 @@
+apiVersion: kagent.dev/v1alpha2
+kind: Agent
+metadata:
+  name: echo-agent
+  namespace: kagent
+spec:
+  description: Agent that uses the echo MCP tool.
+  type: Declarative
+  declarative:
+    modelConfig: default-model-config
+    systemMessage: |-
+      You're a friendly and helpful agent.
+
+      # Instructions
+      - Always use the echo tool when the user asks you to echo or repeat text.
+      - If the user asks a general question, answer normally.
+      - If you don't know something, say so.
+
+      # Response format
+      - ALWAYS format your response as Markdown
+      - Keep responses short and clear
+    tools:
+      - type: McpServer
+        mcpServer:
+          name: echo-mcp-server
+          kind: MCPServer
+          toolNames:
+            - echo_tool

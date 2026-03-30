@@ -1,13 +1,8 @@
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: mcp
----
 apiVersion: kagent.dev/v1alpha1
 kind: MCPServer
 metadata:
   name: echo-mcp-server
-  namespace: mcp
+  namespace: kagent
   labels:
     kagent.dev/discovery: "disabled"
 spec:

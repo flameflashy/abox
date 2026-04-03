@@ -1,0 +1,21 @@
+apiVersion: agentregistry.dev/v1alpha1
+kind: DiscoveryConfig
+metadata:
+  name: local-discovery
+  namespace: agentregistry
+spec:
+  environments:
+    - name: local
+      provider: local
+      discoveryEnabled: true
+      deployEnabled: false
+      namespaces:
+        - agentregistry
+        - default
+        - kagent
+      resourceTypes:
+        - MCPServer
+        - Agent
+        - ModelConfig
+      cluster:
+        name: local

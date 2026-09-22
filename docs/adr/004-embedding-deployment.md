@@ -2,16 +2,17 @@
 
 ## Status
 
-The sidecar approach is accepted as the next lab experiment. llm-d is a proposed
-plan subject to compatibility checks; it has not been deployed.
+The sidecar approach is accepted as the next lab experiment and has not been
+deployed. An existing Nomic/llama.cpp llm-d deployment was inspected and tested
+on 2026-09-22. Qwen deployment through llm-d remains future work.
 We interpret `llmd` in the assignment as the [llm-d](https://llm-d.ai/) project.
 The model and text preparation are defined in [ADR-003](003-embedding-model.md).
 
 ## Context
 
-Abox already runs in KinD inside Codespace. It includes agentgateway, kagent,
-Qdrant, and Flux; these components do not imply an embedding server is present.
-Assignment item 3 requires an ADR/ToDo for two deployment approaches.
+Abox runs in KinD inside Codespace. It includes agentgateway, kagent, Qdrant,
+Flux, a standalone Nomic llama.cpp server, and a separate Nomic llm-d deployment.
+Assignment item 3 requires an ADR/ToDo for sidecar and llm-d approaches.
 
 ## Decision: start with a sidecar
 
@@ -53,30 +54,48 @@ client ---> llm-d Router (proxy + EPP) ---> InferencePool ---> model-server Pods
 
 The [llm-d architecture](https://llm-d.ai/docs/architecture) separates routing,
 model-server Pod selection, and model execution. llm-d does not replace the runtime.
-For the experiment, plan to use vLLM with the original Qwen3-Embedding-0.6B in
-pooling mode, rather than passing our GGUF to an arbitrary vLLM image.
+The inspected deployment uses llama.cpp as that runtime:
 
-vLLM provides a pooling/embeddings API, but this **does not prove** that the selected
-llm-d Router/EPP version can serve `/v1/embeddings` with the required configuration.
-Check two boundaries separately: the direct backend endpoint and requests through
-the Router. Source: [vLLM embeddings](https://docs.vllm.ai/en/latest/models/pooling_models/embed/).
+| Component | Observed version/configuration |
+|---|---|
+| ModelService chart | `llm-d-modelservice-v0.3.17`, app `v0.3.0` |
+| Model server | `ghcr.io/ggml-org/llama.cpp:server-b10920` |
+| Model artifact | `ghcr.io/den-vasyliev/abox/nomic-embed:v1.18.1-4ccc0ff` |
+| Model storage | Kubernetes image volume mounted read-only at `/model-cache` |
+| InferencePool chart | `inferencepool-1.5.0+bc6b00e127fe`, app `v1.5.0` |
+| Endpoint picker | `registry.k8s.io/gateway-api-inference-extension/epp:v1.5.0` |
+| Pool selector | `llm-d.ai/model: nomic-embed-text-v1-5` |
+| Backend port | `8000` |
 
-The plan builds on [llm-d v0.9.0 optimized-baseline](https://github.com/llm-d/llm-d/tree/v0.9.0/guides/optimized-baseline).
-This is a starting point for adaptation, not a ready-made embedding recipe. Its
-default large generative model and replica/GPU budget do not suit a small Codespace.
-A CPU example does not guarantee support for every CPU machine: first check
-processor instructions, the image, and available memory.
+The model artifact image supplies weights independently from the llama.cpp runtime
+image. This avoids downloading weights in an init container and allows the model
+artifact and runtime to be versioned separately.
 
-Embedding requests do not generate a sequence of new tokens. Therefore, do not
-enable prefill/decode disaggregation or assume that generative KV-cache policies
-will help. Choose a routing policy that supports the pooling backend and its
-available metrics. If incompatible, record the specific blocker; an ordinary
-Service in front of llama.cpp is not a working llm-d deployment.
+The existing HTTPRoute exposes two distinct paths:
 
-Different runtimes and precision levels can produce different vectors. First
-compare direct vLLM access with llm-d using the same vLLM backend, then separately
-compare with GGUF/llama.cpp. Use a separate index for this experiment; do not mix
-its vectors into an existing index.
+| External path | Backend | Meaning |
+|---|---|---|
+| `/llmd/v1/embeddings` | Service `llm-d-embedding` | Rewrites to `/v1/embeddings` and bypasses InferencePool/EPP |
+| `/llmd/*` | InferencePool `llm-d-pool` | Uses the InferencePool path and its endpoint picker |
+
+Because the first path is a more specific match, ordinary embedding requests use
+the Service directly. A temporary route pointing `/llmd-pool/v1/embeddings` at
+the InferencePool was accepted with resolved references and returned HTTP 200
+with an embedding response. The EPP runs with log verbosity 1 and emitted no
+request log. Since the pool uses `failureMode: FailOpen`, that test proves the
+InferencePool data path is functional but does not independently prove which
+endpoint-selection decision the EPP made. Metrics or higher-verbosity tracing
+are required for that stronger claim.
+
+Embedding requests do not generate a sequence of new tokens. Do not enable
+prefill/decode disaggregation or assume that generative KV-cache policies improve
+this workload. The deployed resource calls its only model-server role `decode`
+because of chart conventions; this does not turn embedding inference into a
+decode-stage workload.
+
+The running Nomic path is the deployment baseline. The selected multilingual
+Qwen model must use a separate model identity and vector index. Do not mix Nomic
+and Qwen vectors or compare them as if they shared one embedding space.
 
 ## Abox integration and consequences
 
@@ -90,8 +109,9 @@ Flux reads OCI artifacts, not automatically updated Git files. Adding local YAML
 does not change the cluster. Before publishing, check the actual `oci_registry`:
 the bootstrap default points to upstream, not the student's fork.
 
-For llm-d, start with a separate namespace and verify Gateway API/GAIE compatibility
-with the installed agentgateway. Do not blindly replace existing shared CRDs.
-A standalone Router allows the experiment to start without changing Abox's existing ingress.
+The installed InferencePool reports `Accepted=True` and `ResolvedRefs=True` under
+the existing agentgateway. Do not replace shared Gateway API or Inference Extension
+CRDs without checking Flux ownership and compatibility. Any Qwen experiment must
+use explicit versions and a separate model/index identity.
 
 Criteria and commands: [deployment ToDo](../todo/TODO-embedding-deployment.md).

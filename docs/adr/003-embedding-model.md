@@ -2,7 +2,7 @@
 
 ## Status and context
 
-Accepted for the lab; deployment and quality still need verification in Codespace.
+Accepted for the lab; Qwen deployment and quality still need verification in Codespace.
 Clarification on 2026-09-22: documents and queries will be in Ukrainian, Russian,
 and English. This supersedes the initial choice of Nomic v1.5 in this ADR.
 
@@ -13,7 +13,12 @@ Abox currently provides infrastructure, but no RAG application.
 
 Selection criteria: multilingual support, CPU inference, available GGUF weights,
 a verifiable HTTP contract, and support for exploring Matryoshka embeddings.
-Codespace resources have not been measured yet.
+
+The existing course cluster already serves `nomic-embed-text-v1.5`. On
+2026-09-22, a request through llama.cpp returned HTTP 200, 768 finite values, and
+an L2 norm of approximately 1.0. This is a useful deployment baseline, but it does
+not change the multilingual model decision: the tested Nomic model card is tagged
+English, while the target corpus is multilingual.
 
 ## Decision
 
@@ -79,6 +84,9 @@ Sources: [Nomic](https://huggingface.co/nomic-ai/nomic-embed-text-v1.5),
 
 - Network access is needed to download weights and images; text is processed in Codespace.
 - KinD and the model share one machine. Additional workers do not add physical CPU or RAM.
+- The measured Codespace has 4 CPUs, 15 GiB RAM, about 8.8 GiB available RAM,
+  and only 1.4 GiB free disk space. Free disk capacity must be addressed before
+  adding Qwen weights and another runtime image.
 - 256 dimensions is the lab candidate; 1024 is the comparison baseline.
 - Start with an API smoke check covering three languages. Then evaluate at least
   30 labeled queries, 10 per language, including cross-language retrieval;

@@ -93,111 +93,142 @@ kubectl -n embedding-lab delete deployment embedding-sidecar
 This deletes the Pod and its model in `emptyDir`. The namespace remains; the
 command does not target Abox components.
 
-## B. llm-d: preparation and compatibility checks
+## B. llm-d: inspect and verify the existing deployment
 
-This section is a ToDo, not a claim that llm-d is running. Assignment item 3 asks
-for an ADR/ToDo. A generative model response or a successful direct call to one
-vLLM Pod does not prove that the full embedding route works.
+The course cluster already contains a Nomic/llama.cpp llm-d deployment. Treat it
+as a baseline for understanding the architecture. It does not deploy the selected
+multilingual Qwen model.
 
-### 1. Record the environment and versions
+### 1. Record resources and version locks
 
-- [ ] Read [optimized-baseline in llm-d v0.9.0](https://github.com/llm-d/llm-d/tree/v0.9.0/guides/optimized-baseline)
-  and choose an appropriate CPU/GPU backend. Check the resource budget, CPU
-  capabilities, and model support in the selected vLLM image. Stop the sidecar
-  before starting a resource-intensive experiment.
-
-```bash
-kubectl get nodes -o wide
-kubectl get nodes -o json > .lab/embeddings/nodes.json
-kubectl get gatewayclass
-kubectl get crd | grep -E 'gateway|inference'
-lscpu
-free -h
-git clone --branch v0.9.0 --depth 1 https://github.com/llm-d/llm-d.git .lab/llm-d
-git -C .lab/llm-d rev-parse HEAD
-```
-
-Do not clone again if the directory exists; check its HEAD instead. Record the
-commit, chart versions, GAIE, proxy/EPP, vLLM image digest, and revision of the
-original `Qwen/Qwen3-Embedding-0.6B`. The llm-d version alone does not pin every
-external image or chart. Replace moving `main`, `nightly`, and `v0` references
-from upstream examples with specific versions before deploying your configuration.
-
-### 2. Verify the model independently of the router
-
-- [ ] Prepare one vLLM model-server Pod in namespace `embedding-llmd-lab` for the
-  available hardware, with resource requests/limits, `/health` probes, and a
-  weight cache. Use the original Hugging Face weights for this runtime, not the
-  Q8_0 GGUF file.
-- [ ] Check `vllm serve --help` in the pinned image. The target configuration below
-  defines the behavior; select the image/backend in the previous step:
+- [x] Confirm the cluster, model server, InferencePool, and EPP are Ready.
+- [x] Record the chart and image versions shown in ADR-004.
+- [ ] Record immutable image digests in addition to tags.
 
 ```bash
-# Inside the prepared vLLM environment; revision was set in step 1.
-: "${VLLM_MODEL_REVISION:?Set the reviewed Hugging Face commit first}"
-vllm serve Qwen/Qwen3-Embedding-0.6B \
-  --revision "$VLLM_MODEL_REVISION" \
-  --runner pooling \
-  --served-model-name qwen3-embedding-0.6b \
-  --max-model-len 2048 --host 0.0.0.0 --port 8000
+helm list -A | grep -E 'llama|llm-d|inference' || true
+kubectl -n llm-d get deployment,service,pod -o wide
+kubectl -n llm-d get inferencepool llm-d-pool -o yaml
+kubectl -n llm-d get httproute llm-d-embedding -o yaml
+kubectl -n llm-d get pods \
+  -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}{range .status.containerStatuses[*]}{.imageID}{"\n"}{end}{end}'
 ```
 
-Source: [vLLM pooling/embeddings](https://docs.vllm.ai/en/latest/models/pooling_models/embed/).
-Choose dtype and CPU/GPU environment settings using the documentation for the
-specific image. If it does not support the model or hardware, record a blocker
-with the version and error; do not mark the task done or substitute chat completion.
+The model server uses `ghcr.io/ggml-org/llama.cpp:server-b10920`. Model weights
+come from the image volume `nomic-embed:v1.18.1-4ccc0ff`, mounted read-only at
+`/model-cache`. The InferencePool selects Pods labelled
+`llm-d.ai/model: nomic-embed-text-v1-5` and sends traffic to port 8000.
 
-- [ ] With port-forwarding on `18081:8000`, run
-  `python3 scripts/verify-embeddings.py --url http://127.0.0.1:18081 --output .lab/embeddings/vllm-direct.json`.
-  Verify correct last-token pooling, 1024 values, and query/document preparation.
-  Connect the Router only after this succeeds.
+### 2. Verify the direct Nomic backend
 
-### 3. Prepare the llm-d Router and InferencePool
+- [x] Verify `/health`.
+- [x] Call `/v1/embeddings` and confirm 768 finite values with L2 norm close to 1.
 
-- [ ] Adapt the pinned upstream guide for a **standalone Router**, a separate
-  namespace, and one model server for the first experiment. Do not copy the
-  example's large generative model, replica count, and GPU budget.
-- [ ] Compare GAIE CRDs with the installed Gateway API/agentgateway. Check versions
-  and Flux ownership. Do not blindly replace shared CRDs: if there is a conflict,
-  use a separate test cluster or a coordinated upgrade.
-- [ ] Install CRDs before Router/EPP and InferencePool. Ensure the pool selector
-  matches model-server Pod labels and targetPort matches backend port `8000`.
-- [ ] Inspect the schema of the installed version:
+The verified direct request used the Nomic retrieval prefix:
 
 ```bash
-kubectl api-resources | grep -i inference
-kubectl explain inferencepool.spec
+curl --fail --silent --show-error http://127.0.0.1:18090/v1/embeddings \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "model": "nomic-embed-text-v1.5",
+    "input": "search_query: How does Qdrant store vectors?",
+    "encoding_format": "float"
+  }' > /tmp/nomic-embedding.json
 ```
 
-- [ ] Verify proxy and EPP configuration for **`POST /v1/embeddings`**: parsing of
-  `model`/`input`, the non-streaming response format, and pooling backend health
-  and metrics. Select a supported policy without assuming a generative KV cache
-  exists. Do not enable prefill/decode disaggregation for this experiment.
-- [ ] Save adapted values/manifests and run `helm template` /
-  `kubectl apply --dry-run=server` before installation. Add the version lock and
-  installation commands to this ToDo once the selected combination is confirmed.
+Do not use `scripts/verify-embeddings.py` for this baseline: that script implements
+the Qwen contract (1024 dimensions, last-token pooling, and Qwen instructions).
 
-### 4. Demonstrate inference through llm-d
+### 3. Understand the two Gateway paths
 
-- [ ] Port-forward the **Router Service**, for example on `18082`, and run the same
-  smoke script with `--url http://127.0.0.1:18082`.
-- [ ] Compare against direct responses from the same vLLM backend: dimensions,
-  values within a justified numerical tolerance, ranking, and HTTP status codes.
-- [ ] Use Router/EPP logs to show which backend received the request. If resources
-  permit, start a second backend and verify routing and behavior when one replica
-  becomes unavailable. One successful backend verifies the route, not load balancing.
-- [ ] For performance, measure full embedding request duration, throughput,
-  p50/p95, CPU/RAM, and errors. Generation TTFT is not a substitute for embedding latency.
-- [ ] If incompatible, record the exact version combination and observed error,
-  and leave the step incomplete. Do not count an ordinary Kubernetes Service as llm-d.
+The existing HTTPRoute has two rules:
 
-### 5. Results and regular integration
+- `/llmd/v1/embeddings` rewrites to `/v1/embeddings` and uses the Service directly.
+- `/llmd/*` uses `InferencePool/llm-d-pool`.
 
-- [ ] Record actual checks, versions, limitations, and status in the Changelog.
-- [ ] Only after a successful experiment, package permanent charts/resources
-  according to CONTRIBUTING.md, with CRDs before applications and explicit versions.
-- [ ] Before OCI publication, check `flux get all`, your fork's registry, and the
-  diff. `make push` publishes a release; it is not needed to run this demonstration.
-- [ ] For cleanup, use the recorded resource list to delete only releases and
-  Deployments created for the experiment. Do not delete shared Gateway API CRDs
-  or resources belonging to the running Abox installation.
+Because the first match is more specific, this request verifies agentgateway and
+the model Service but bypasses EPP:
+
+```bash
+GATEWAY_IP="$(kubectl -n agentgateway-system get gateway \
+  agentgateway-external -o jsonpath='{.status.addresses[0].value}')"
+curl --fail --silent --show-error \
+  "http://${GATEWAY_IP}/llmd/v1/embeddings" \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "model": "nomic-embed-text-v1.5",
+    "input": "search_query: How does Qdrant store vectors?",
+    "encoding_format": "float"
+  }' > /tmp/llmd-direct-embedding.json
+```
+
+This path returned HTTP 200 and the expected 768-dimensional normalized vector.
+
+### 4. Verify the InferencePool path
+
+- [x] Create a temporary HTTPRoute with a non-overlapping prefix,
+  `/llmd-pool/v1/embeddings`, and an InferencePool backend.
+- [x] Confirm `Accepted=True` and `ResolvedRefs=True`.
+- [x] Receive HTTP 200 and an embedding response through that path.
+- [ ] Obtain independent evidence of EPP endpoint selection.
+
+The EPP runs at verbosity 1 and produced no per-request log. The pool also uses
+`failureMode: FailOpen`; therefore, HTTP 200 proves that the InferencePool data
+path works, but it does not by itself prove the EPP scheduling decision.
+
+For additional evidence, expose the EPP metrics port in one terminal:
+
+```bash
+kubectl -n llm-d port-forward service/llm-d-pool-epp 19090:9090
+```
+
+In another terminal, capture relevant counters before and after one request:
+
+```bash
+curl --fail --silent http://127.0.0.1:19090/metrics \
+  | grep -Ei 'request|endpoint|pick|schedule|ext_proc' \
+  > /tmp/epp-metrics-before.txt
+
+curl --fail --silent --show-error \
+  "http://${GATEWAY_IP}/llmd-pool/v1/embeddings" \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "model": "nomic-embed-text-v1.5",
+    "input": "search_query: How does Qdrant store vectors?",
+    "encoding_format": "float"
+  }' > /tmp/llmd-pool-embedding.json
+
+curl --fail --silent http://127.0.0.1:19090/metrics \
+  | grep -Ei 'request|endpoint|pick|schedule|ext_proc' \
+  > /tmp/epp-metrics-after.txt
+diff -u /tmp/epp-metrics-before.txt /tmp/epp-metrics-after.txt || true
+```
+
+If the exposed metrics do not provide request-level evidence, temporarily raise
+EPP verbosity or enable tracing through the version-controlled Helm values. Do
+not edit the Flux-managed Deployment directly and present the result as durable.
+
+After evidence has been saved, remove only the temporary route:
+
+```bash
+kubectl -n llm-d delete httproute llm-d-embedding-pool-test
+```
+
+Do not delete the course-managed `llm-d-embedding` route, InferencePool, shared
+Gateway API CRDs, or llm-d Helm releases.
+
+### 5. Adapt the architecture for Qwen
+
+- [ ] Resolve the low disk-space condition before downloading Qwen.
+- [ ] Package Qwen weights as a pinned model artifact or use another reproducible
+  storage method. Keep runtime and model artifact versions explicit.
+- [ ] Use a new model label, route identity, and Qdrant collection. Do not reuse
+  the Nomic collection or its 768-dimensional schema.
+- [ ] Run `scripts/verify-embeddings.py` directly against Qwen, then through its
+  Gateway Service path, and finally through a non-overlapping InferencePool path.
+- [ ] Measure Recall@5 for 1024 and 256 dimensions before accepting truncation.
+- [ ] Record actual results and limitations in the Changelog.
+
+Only after a successful experiment should permanent resources be added according
+to CONTRIBUTING.md, with CRDs before applications and explicit versions. Before
+OCI publication, verify `flux get all`, the registry for your fork, and the diff.

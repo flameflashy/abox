@@ -38,3 +38,5 @@ terraform.rc
 
 preview-config
 .kubeconfig
+
+abox-config

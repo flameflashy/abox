@@ -75,6 +75,15 @@ make push   # bumps patch version, tags, pushes â†’ CI publishes OCI artifact â†
 
 The CRD kustomization runs first (`wait: true`), apps run after (`dependsOn: releases-crds`). This ordering is enforced by Flux and must be preserved.
 
+## Laboratory 3: text embeddings
+
+The lab uses multilingual Qwen3-Embedding-0.6B with llama.cpp in Codespaces.
+Start with the [model ADR](docs/adr/003-embedding-model.md) and
+[local run instructions](docs/todo/TODO-embeddings.md), then follow the
+[sidecar and llm-d plan](docs/todo/TODO-embedding-deployment.md).
+See [Changelog](CHANGELOG.md) for prepared work and pending runtime checks.
+The lab example is applied explicitly; it is not part of the default Flux release.
+
 ## Contributing
 
 See [CONTRIBUTING.md](./CONTRIBUTING.md).

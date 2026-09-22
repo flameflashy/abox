@@ -35,3 +35,7 @@ terraform.rc
 # Claude
 CLAUDE.md
 
+# Lab downloads, rendered manifests, and local evidence
+.lab/
+__pycache__/
+

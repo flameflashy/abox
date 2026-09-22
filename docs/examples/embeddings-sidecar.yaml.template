@@ -1,0 +1,132 @@
+# Render __LLAMA_IMAGE__ with the digest tested locally; see deployment ToDo.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: embedding-lab
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: embedding-sidecar
+  namespace: embedding-lab
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: embedding-sidecar
+  template:
+    metadata:
+      labels:
+        app: embedding-sidecar
+    spec:
+      automountServiceAccountToken: false
+      initContainers:
+        - name: download-model
+          image: python:3.13.3-slim
+          command: [python, -u, -c]
+          args:
+            - |
+              import hashlib
+              import pathlib
+              import urllib.request
+              url = 'https://huggingface.co/Qwen/Qwen3-Embedding-0.6B-GGUF/resolve/370f27d7550e0def9b39c1f16d3fbaa13aa67728/Qwen3-Embedding-0.6B-Q8_0.gguf'
+              expected = '06507c7b42688469c4e7298b0a1e16deff06caf291cf0a5b278c308249c3e439'
+              target = pathlib.Path('/models/Qwen3-Embedding-0.6B-Q8_0.gguf')
+              temporary = target.with_suffix('.partial')
+              digest = hashlib.sha256()
+              with urllib.request.urlopen(url, timeout=120) as source, temporary.open('wb') as output:
+                  while chunk := source.read(1024 * 1024):
+                      digest.update(chunk)
+                      output.write(chunk)
+              if digest.hexdigest() != expected:
+                  raise RuntimeError('GGUF checksum mismatch')
+              temporary.replace(target)
+              print('Model downloaded and SHA-256 verified')
+          resources:
+            requests:
+              cpu: 100m
+              memory: 64Mi
+            limits:
+              cpu: '1'
+              memory: 256Mi
+          volumeMounts:
+            - name: models
+              mountPath: /models
+      containers:
+        - name: client
+          image: python:3.13.3-slim
+          command: [python, -u, -c]
+          args: ['import time; print("Run the embedding smoke check with kubectl exec"); time.sleep(10**9)']
+          resources:
+            requests:
+              cpu: 50m
+              memory: 32Mi
+            limits:
+              cpu: 250m
+              memory: 128Mi
+        - name: embeddings
+          image: __LLAMA_IMAGE__
+          args:
+            - --model
+            - /models/Qwen3-Embedding-0.6B-Q8_0.gguf
+            - --alias
+            - qwen3-embedding-0.6b
+            - --embedding
+            - --pooling
+            - last
+            - --ctx-size
+            - '2048'
+            - --batch-size
+            - '2048'
+            - --ubatch-size
+            - '2048'
+            - --parallel
+            - '1'
+            - --threads
+            - '2'
+            - --n-gpu-layers
+            - '0'
+            - --host
+            - 0.0.0.0
+            - --port
+            - '8080'
+          ports:
+            - name: embeddings
+              containerPort: 8080
+          startupProbe:
+            httpGet:
+              path: /health
+              port: embeddings
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 60
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: embeddings
+            periodSeconds: 10
+            timeoutSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: embeddings
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 5
+          resources:
+            requests:
+              cpu: 500m
+              memory: 1Gi
+            limits:
+              cpu: '2'
+              memory: 3Gi
+          volumeMounts:
+            - name: models
+              mountPath: /models
+              readOnly: true
+      volumes:
+        - name: models
+          emptyDir:
+            sizeLimit: 2Gi

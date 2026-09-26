@@ -30,5 +30,5 @@ spec:
     createNamespace: true
   values:
     image:
-      tag: "0.5.18"
+      tag: "0.6.1"
     disableAuth: true

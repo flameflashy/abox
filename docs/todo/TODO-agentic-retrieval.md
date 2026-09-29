@@ -447,6 +447,19 @@ Expected evidence is vector size 768. Eight short inputs should produce eight
 points and eight unique IDs; if chunking creates more, record the actual count
 and inspect why.
 
+Compare every stored document with the current ConfigMap. This catches a stale
+or reconstructed manifest even when its `doc_id` is correct:
+
+```bash
+python3 scripts/verify-agentic-corpus.py \
+  --qdrant-url http://127.0.0.1:6333 \
+  --collection lab4-nomic \
+  --layout abox
+```
+
+Accept the corpus only when every row says `MATCH` and the final line is
+`Exact corpus match: yes`.
+
 If the point count is eight but the IDs differ from the predefined corpus, the
 run is invalid. Delete only the dedicated `lab4-nomic` collection, reapply the
 fixed ConfigMap and Agent manifests, and repeat ingestion. Never delete the

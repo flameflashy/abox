@@ -62,9 +62,16 @@
 - Excluded the first isolated Abox ingestion because its eight points came from
   a different release corpus. Added a Flux reconciliation guard to the fixed
   corpus ConfigMap and exact expected-key validation to both Agent prompts.
-- Abox corpus ingestion and Agentic Retrieval measurements are pending.
-  Expected dimensions and prepared manifests are not recorded as observed
-  results.
+- Completed the controlled Abox retry with eight sequential `vector_store`
+  calls. Independent inspection confirmed the exact eight predefined IDs in
+  eight points and a 768-dimensional `default` vector with Cosine distance.
+  Retrieval answers then contradicted the fixed manifests. Payload inspection
+  confirmed that old manifest text had been stored under the expected IDs, so
+  the run was excluded from metrics.
+- Added an exact corpus verifier that compares every indexed `document` payload
+  with the live ConfigMap and reports SHA-256 fingerprints. Strengthened both
+  ingestion prompts with live-read requirements and content sentinels.
+- Abox Agentic Retrieval measurements are pending.
 
 ## Unreleased — Laboratory 3 (2026-09-22)
 

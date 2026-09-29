@@ -36,8 +36,23 @@ spec:
       - DOC-07-abox-qdrant-mcp.yaml
       - DOC-08-inference-pool.yaml
 
+      Ask k8s-agent to read the current object through its Kubernetes tools and
+      return the raw data values verbatim. Do not let it reconstruct manifests
+      from memory. Before storing, also verify these content sentinels:
+
+      - DOC-01 contains /qdrant/storage and storage: 5Gi;
+      - DOC-02 contains http://127.0.0.1:8090/v1/embeddings;
+      - DOC-03 contains both kind: OCIRepository and kind: Kustomization;
+      - DOC-04 contains /llmd/v1/embeddings and port: 8000;
+      - DOC-05 states that the tools are qdrant-store and qdrant-find;
+      - DOC-06 contains modelConfig: default-model-config;
+      - DOC-07 contains vector_store, vector_find, and abox-nomic;
+      - DOC-08 contains kind: InferencePool and endpointPickerRef.
+
       If any key is missing or different, make no store calls and report the
-      mismatch. The user's explicit ingestion request already authorizes this
+      mismatch. Reject content containing /mnt/data/qdrant, storage: 10Gi, or
+      apiVersion: projectcontour.io/v1 because it belongs to a different test
+      corpus. The user's explicit ingestion request already authorizes this
       verification and the store calls, so do not ask for confirmation.
       Otherwise, call vector_store exactly once for every data entry:
 

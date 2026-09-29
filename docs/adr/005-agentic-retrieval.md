@@ -147,8 +147,8 @@ Do not replace `pending` until the corresponding run has been observed.
 
 | Metric | Official MiniLM MCP | Abox Nomic MCP |
 |---|---:|---:|
-| Indexed documents | 8 (exact count; 8 unique IDs) | pending |
-| Collection vector size | 384 (`fast-all-minilm-l6-v2`, Cosine) | pending (expected 768) |
+| Indexed documents | 8 (exact count; 8 unique IDs) | 8 (exact count; 8 unique IDs) |
+| Collection vector size | 384 (`fast-all-minilm-l6-v2`, Cosine) | 768 (`default`, Cosine) |
 | Tool-use rate | 100.0% | pending |
 | Hit@1 | 87.5% | pending |
 | Hit@3 | 87.5% | pending |
@@ -192,6 +192,18 @@ to a different release corpus: `DOC-04-abox-mcpserver`,
 official run, it is excluded from all comparison metrics. The corpus ConfigMap
 and both Agent prompts now carry reconciliation and exact-key guards; the
 dedicated `lab4-nomic` collection must be reset before the controlled retry.
+
+The controlled retry reported eight successful sequential `vector_store`
+calls in DOC-01 through DOC-08 order. Independent Qdrant inspection confirmed
+the `default` vector with size 768 and Cosine distance, eight total points,
+eight unique IDs, and the exact predefined ID list. The subsequent answers,
+however, cited manifest values that differ from the fixed corpus. Payload text
+comparison confirmed that `lab4-nomic` stored an older corpus under those IDs:
+for example, Qdrant storage was a 10Gi local PV at `/mnt/data/qdrant`, while the
+live ConfigMap and official collection both contained the 5Gi StatefulSet
+volume at `/qdrant/storage`. This run is a precondition failure and is excluded
+from all metrics. The retry requires an exact payload-to-ConfigMap comparison,
+not only matching IDs and point counts.
 
 ## Consequences
 

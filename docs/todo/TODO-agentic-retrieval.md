@@ -187,13 +187,19 @@ out-of-band mechanism.
 ## 3. Pause GitOps while switching the experiment manifests
 
 The release owns `retrieval-agent`. Flux can otherwise restore the release
-version during the test.
+version during the test. Suspend the release Kustomization and also disable
+reconciliation on this specific Agent. The per-resource annotation keeps the
+experiment stable even if the generated Kustomization is later updated by its
+parent ResourceSet.
 
 ```bash
 kubectl -n flux-system patch kustomization releases \
   --type=merge -p '{"spec":{"suspend":true}}'
 kubectl -n flux-system get kustomization releases \
   -o custom-columns='NAME:.metadata.name,SUSPENDED:.spec.suspend,READY:.status.conditions[?(@.type=="Ready")].status,REVISION:.status.lastAppliedRevision'
+
+kubectl -n kagent annotate agent retrieval-agent \
+  kustomize.toolkit.fluxcd.io/reconcile=disabled --overwrite
 ```
 
 Resume it after the experiment in step 11.
@@ -338,24 +344,28 @@ official	Q01	qdrant-find	DOC-01-qdrant-storage,DOC-07-abox-qdrant-mcp	1	0	3.42
 
 The columns mean: configuration, query ID, tool observed in the trace, returned
 document IDs in tool order, whether every answer claim is grounded (`1` or
-`0`), number of unsupported factual claims, and elapsed seconds. The example is
-only a format illustration; record the actual trace and latency. Leave latency
-empty when neither the UI nor the trace exposes it; the scorer will report that
+`0`), number of unsupported factual claims, and elapsed seconds. A grounded
+answer must both answer the question and have every factual claim supported; an
+incomplete answer scores `0` even when its individual statements are true. The example is
+only a format illustration; record the actual trace and latency. Set latency to
+`NA` when neither the UI nor the trace exposes it; the scorer will report that
 latency was not recorded rather than inventing a value.
 
 ## 8. Switch to the Abox MCP toolset
 
 The release's `qdrant-mcp` uses Nomic through llama.cpp and stores in
-`abox-nomic`. Check whether the collection already contains unrelated data:
+`abox-nomic`. Cluster inspection found nine existing release documents in that
+collection. Do not delete them or mix the evaluation corpus with them.
+
+Deploy an isolated instance of the same Abox MCP image and configuration. It
+changes only the MCPServer resource name and collection name, using
+`lab4-nomic` for the controlled experiment:
 
 ```bash
-curl --silent http://127.0.0.1:6333/collections/abox-nomic \
-  | python3 -m json.tool
+kubectl apply -f docs/examples/lab4/qdrant-abox-lab4-mcp.yaml
+kubectl -n kagent wait mcpserver/qdrant-mcp-lab4 \
+  --for=condition=Ready=True --timeout=5m
 ```
-
-For a new lab cluster, the collection is normally absent. If it contains data,
-do not count the run as controlled until the collection has been isolated or
-cleared.
 
 Apply the alternate agent manifest:
 
@@ -368,8 +378,13 @@ kubectl -n kagent get agent retrieval-agent -o jsonpath='{range .spec.declarativ
 Expected vector toolset:
 
 ```text
-qdrant-mcp => [vector_store vector_find]
+qdrant-mcp-lab4 => [vector_store vector_find]
 ```
+
+This is still the release's default Abox MCP implementation: it runs
+`ghcr.io/den-vasyliev/abox/qdrant-mcp:0.4.0`, calls the same external llama.cpp
+endpoint, and exposes the same tools. Isolation prevents the nine existing
+`abox-nomic` documents from affecting retrieval ranks.
 
 ## 9. Index the identical corpus with the Abox MCP
 
@@ -382,17 +397,42 @@ Ingest the evaluation corpus from ConfigMap kagent/agentic-retrieval-corpus exac
 Verify the collection:
 
 ```bash
-curl --fail --silent http://127.0.0.1:6333/collections/abox-nomic \
-  | python3 -m json.tool
+curl --fail --silent http://127.0.0.1:6333/collections/lab4-nomic | \
+python3 -c '
+import json, sys
+response = json.load(sys.stdin)
+result = response["result"]
+vectors = result["config"]["params"]["vectors"]
+named_vectors = {"default": vectors} if "size" in vectors else vectors
+print("status:", response["status"])
+for name, config in named_vectors.items():
+    print("vector_name:", name)
+    print("vector_size:", config["size"])
+    print("distance:", config["distance"])
+print("reported_points_count:", result["points_count"])
+'
 
 curl --fail --silent \
-  'http://127.0.0.1:6333/collections/abox-nomic/points/count' \
+  'http://127.0.0.1:6333/collections/lab4-nomic/points/count' \
   -H 'Content-Type: application/json' \
   -d '{"exact":true}' | python3 -m json.tool
+
+curl --fail --silent \
+  'http://127.0.0.1:6333/collections/lab4-nomic/points/scroll' \
+  -H 'Content-Type: application/json' \
+  -d '{"limit":100,"with_payload":true,"with_vector":false}' | \
+python3 -c '
+import json, sys
+points = json.load(sys.stdin)["result"]["points"]
+doc_ids = sorted(point["payload"]["doc_id"] for point in points)
+print("stored_doc_ids:", *doc_ids, sep="\n  ")
+print("unique_doc_ids:", len(set(doc_ids)))
+'
 ```
 
 Expected evidence is vector size 768. Eight short inputs should produce eight
-points; if chunking creates more, record the actual count and inspect why.
+points and eight unique IDs; if chunking creates more, record the actual count
+and inspect why.
 
 ## 10. Run and score the Abox-MCP queries
 
@@ -431,6 +471,9 @@ Otherwise Flux will deliberately restore the published release version.
 
 ```bash
 kill "$QDRANT_PF_PID"
+kubectl -n kagent annotate agent retrieval-agent \
+  kustomize.toolkit.fluxcd.io/reconcile-
+
 kubectl -n flux-system patch kustomization releases \
   --type=merge -p '{"spec":{"suspend":false}}'
 

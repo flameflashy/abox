@@ -3,6 +3,8 @@ kind: Agent
 metadata:
   name: retrieval-agent
   namespace: kagent
+  annotations:
+    kustomize.toolkit.fluxcd.io/reconcile: disabled
   labels:
     app.kubernetes.io/part-of: lab4-agentic-retrieval
     lab4.toolset: official-qdrant

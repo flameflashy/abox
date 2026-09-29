@@ -4,4 +4,5 @@ kind: Kustomization
 resources:
   - retrieval-corpus.yaml
   - qdrant-official-mcp.yaml
+  - qdrant-abox-lab4-mcp.yaml
   - retrieval-agent-official.yaml

@@ -1,1 +1,9 @@
 configuration	query_id	retrieval_tool	returned_doc_ids	grounded	unsupported_claims	latency_seconds
+official	Q01	qdrant-find	DOC-01-qdrant-storage,DOC-05-official-qdrant-mcp,DOC-07-abox-qdrant-mcp,DOC-06-agent-model,DOC-08-inference-pool	1	0	NA
+official	Q02	qdrant-find	DOC-02-sidecar-network,DOC-05-official-qdrant-mcp,DOC-07-abox-qdrant-mcp,DOC-01-qdrant-storage,DOC-03-flux-oci	1	0	NA
+official	Q03	qdrant-find	DOC-05-official-qdrant-mcp,DOC-01-qdrant-storage,DOC-02-sidecar-network,DOC-03-flux-oci,DOC-06-agent-model	0	1	NA
+official	Q04	qdrant-find	DOC-04-llmd-route,DOC-08-inference-pool,DOC-07-abox-qdrant-mcp,DOC-02-sidecar-network,DOC-05-official-qdrant-mcp	1	0	NA
+official	Q05	qdrant-find	DOC-05-official-qdrant-mcp,DOC-06-agent-model,DOC-07-abox-qdrant-mcp,DOC-01-qdrant-storage,DOC-08-inference-pool	1	0	NA
+official	Q06	qdrant-find	DOC-06-agent-model,DOC-05-official-qdrant-mcp,DOC-07-abox-qdrant-mcp,DOC-02-sidecar-network,DOC-04-llmd-route	1	0	NA
+official	Q07	qdrant-find	DOC-07-abox-qdrant-mcp,DOC-05-official-qdrant-mcp,DOC-08-inference-pool,DOC-06-agent-model,DOC-02-sidecar-network	0	0	NA
+official	Q08	qdrant-find	DOC-08-inference-pool,DOC-04-llmd-route,DOC-07-abox-qdrant-mcp,DOC-06-agent-model,DOC-05-official-qdrant-mcp	1	0	NA

@@ -77,11 +77,13 @@ def main() -> int:
         try:
             unsupported_claims = int(row["unsupported_claims"])
             latency_text = row["latency_seconds"].strip()
-            latency = float(latency_text) if latency_text else None
+            latency = (
+                None if latency_text.upper() in {"", "NA", "N/A"} else float(latency_text)
+            )
         except ValueError as error:
             raise ValueError(
                 f"row {number}: unsupported_claims must be an integer and "
-                "latency_seconds must be numeric or empty"
+                "latency_seconds must be numeric or NA"
             ) from error
         if unsupported_claims < 0 or (latency is not None and latency < 0):
             raise ValueError(f"row {number}: numeric values cannot be negative")

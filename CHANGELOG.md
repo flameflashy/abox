@@ -11,6 +11,9 @@
 - Added official and Abox variants of `retrieval-agent`. Both use
   `default-model-config`, the same ingestion/retrieval rules, and the same
   `k8s-agent` delegate; only the MCP server and vector tool names differ.
+- Added an isolated `qdrant-mcp-lab4` instance of the release's Abox MCP image.
+  It uses the same Nomic llama.cpp endpoint and writes to `lab4-nomic`, keeping
+  the controlled corpus separate from release data in `abox-nomic`.
 - Added a fixed eight-document Kubernetes corpus and eight predefined English,
   Ukrainian, and Russian queries with expected document IDs.
 - Added [ADR-005](docs/adr/005-agentic-retrieval.md), the
@@ -46,8 +49,19 @@
   and eight unique IDs. After verifying the two `DOC-08-inference-pool`
   payloads were identical, removed one duplicate and confirmed the final count
   of eight points and eight unique IDs.
-- Corpus ingestion and Agentic Retrieval measurements are pending. Expected
-  dimensions and prepared manifests are not recorded as observed results.
+- Excluded Q02-Q08 attempts that unexpectedly used the release's Abox toolset
+  before `abox-nomic` was indexed. Added a per-Agent Flux reconciliation guard
+  to keep each comparison manifest active until its run is complete.
+- Completed the eight-query official MiniLM run: 100% retrieval-tool use,
+  87.5% Hit@1, 87.5% Hit@3, 75% grounded answer accuracy, and one unsupported
+  claim. The UI did not expose latency, so no latency value was invented.
+- Inspected the release-owned `abox-nomic` collection: it uses a
+  768-dimensional Cosine vector and already contains nine unique operational
+  documents. Preserved that data and prepared the isolated `lab4-nomic`
+  collection for the controlled Abox run.
+- Abox corpus ingestion and Agentic Retrieval measurements are pending.
+  Expected dimensions and prepared manifests are not recorded as observed
+  results.
 
 ## Unreleased — Laboratory 3 (2026-09-22)
 

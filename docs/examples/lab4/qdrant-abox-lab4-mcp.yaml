@@ -1,0 +1,25 @@
+apiVersion: kagent.dev/v1alpha1
+kind: MCPServer
+metadata:
+  name: qdrant-mcp-lab4
+  namespace: kagent
+  labels:
+    app.kubernetes.io/part-of: lab4-agentic-retrieval
+    lab4.embedding-model: nomic-embed-text-v1-5
+spec:
+  transportType: stdio
+  stdioTransport: {}
+  deployment:
+    image: ghcr.io/den-vasyliev/abox/qdrant-mcp:0.4.0
+    cmd: /app/server
+    env:
+      EMBEDDINGS_BASE_URL: http://llama-cpp-embeddings.llama-cpp:8090
+      QDRANT_URL: http://qdrant.qdrant:6333
+      QDRANT_COLLECTION: lab4-nomic
+    resources:
+      requests:
+        cpu: 25m
+        memory: 32Mi
+      limits:
+        cpu: 500m
+        memory: 256Mi

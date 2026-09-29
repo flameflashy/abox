@@ -39,11 +39,19 @@ Change only the vector toolset and its embedding implementation:
 | Configuration | MCPServer | Store/find tools | Embedding model | Collection | Dimensions |
 |---|---|---|---|---|---:|
 | Official | `qdrant-official-mcp` | `qdrant-store`, `qdrant-find` | `sentence-transformers/all-MiniLM-L6-v2` | `lab4-minilm` | 384 |
-| Abox baseline | `qdrant-mcp` | `vector_store`, `vector_find` | `nomic-ai/nomic-embed-text-v1.5` through llama.cpp | `abox-nomic` | 768 |
+| Abox baseline | `qdrant-mcp-lab4` | `vector_store`, `vector_find` | `nomic-ai/nomic-embed-text-v1.5` through llama.cpp | `lab4-nomic` | 768 |
 
 Separate collections are mandatory. Their dimensions and embedding spaces are
 different, so vectors cannot be copied or mixed. The original text must be
 re-embedded by each MCP server.
+
+The release-owned `abox-nomic` collection already contained nine operational
+documents when inspected. The experiment therefore uses `qdrant-mcp-lab4`, an
+isolated instance of the same `ghcr.io/den-vasyliev/abox/qdrant-mcp:0.4.0`
+image with the same command, tools, Qdrant service, and external llama.cpp
+endpoint. Only its Kubernetes resource name and collection name differ. This
+preserves the release data and prevents unrelated documents from changing the
+retrieval ranks.
 
 The official server runs as a kagent-managed stdio MCPServer. It is launched by
 the official `uv` container with the Python package pinned to
@@ -141,25 +149,40 @@ Do not replace `pending` until the corresponding run has been observed.
 |---|---:|---:|
 | Indexed documents | 8 (exact count; 8 unique IDs) | pending |
 | Collection vector size | 384 (`fast-all-minilm-l6-v2`, Cosine) | pending (expected 768) |
-| Tool-use rate | pending | pending |
-| Hit@1 | pending | pending |
-| Hit@3 | pending | pending |
-| Grounded answer accuracy | pending | pending |
-| Unsupported claims | pending | pending |
-| Median observed latency | pending | pending |
+| Tool-use rate | 100.0% | pending |
+| Hit@1 | 87.5% | pending |
+| Hit@3 | 87.5% | pending |
+| Grounded answer accuracy | 75.0% | pending |
+| Unsupported claims | 1 | pending |
+| Median observed latency | not recorded by UI | pending |
 
 ### Per-query observations
 
 | Query | Expected | Official returned IDs | Official answer | Abox returned IDs | Abox answer |
 |---|---|---|---|---|---|
-| Q01 | DOC-01-qdrant-storage | trace payload pending | Correct and grounded: `/qdrant/storage`, 5Gi | pending | pending |
-| Q02 | DOC-02-sidecar-network | trace payload pending | Correct and grounded: localhost URL and shared Pod network | pending | pending |
-| Q03 | DOC-03-flux-oci | trace payload pending | Correct and grounded: Flux OCIRepository plus Kustomization | pending | pending |
-| Q04 | DOC-04-llmd-route | trace payload pending | Correct and grounded: `llm-d-embedding` route and rewrite | pending | pending |
-| Q05 | DOC-05-official-qdrant-mcp | trace payload pending | Correct and grounded: `qdrant-store`, `qdrant-find` | pending | pending |
-| Q06 | DOC-06-agent-model | trace payload pending | Correct and grounded: reasoning model is independent from embedder | pending | pending |
-| Q07 | DOC-07-abox-qdrant-mcp | trace payload pending | Correct and grounded: Abox tools use external Nomic endpoint | pending | pending |
-| Q08 | DOC-08-inference-pool | tool call not visible in supplied trace | Correct content; grounding requires tool-call confirmation | pending | pending |
+| Q01 | DOC-01-qdrant-storage | DOC-01, DOC-05, DOC-07, DOC-06, DOC-08 | Correct and grounded: `/qdrant/storage`, 5Gi | pending | pending |
+| Q02 | DOC-02-sidecar-network | DOC-02, DOC-05, DOC-07, DOC-01, DOC-03 | Correct and grounded: localhost URL and shared Pod network | pending | pending |
+| Q03 | DOC-03-flux-oci | DOC-05, DOC-01, DOC-02, DOC-03, DOC-06 | Incorrect: claimed insufficient evidence although DOC-03 was fourth | pending | pending |
+| Q04 | DOC-04-llmd-route | DOC-04, DOC-08, DOC-07, DOC-02, DOC-05 | Correct and grounded: `llm-d-embedding` route and rewrite | pending | pending |
+| Q05 | DOC-05-official-qdrant-mcp | DOC-05, DOC-06, DOC-07, DOC-01, DOC-08 | Correct and grounded: `qdrant-store`, `qdrant-find` | pending | pending |
+| Q06 | DOC-06-agent-model | DOC-06, DOC-05, DOC-07, DOC-02, DOC-04 | Correct and grounded: reasoning model is independent from embedder | pending | pending |
+| Q07 | DOC-07-abox-qdrant-mcp | DOC-07, DOC-05, DOC-08, DOC-06, DOC-02 | Incomplete: identified the server but omitted `vector_store` and `vector_find` | pending | pending |
+| Q08 | DOC-08-inference-pool | DOC-08, DOC-04, DOC-07, DOC-06, DOC-05 | Correct and grounded: matching Pods and one candidate | pending | pending |
+
+Before the remaining official runs, the live Agent reverted to the release's
+Abox toolset. The attempted Q02 through Q08 runs therefore called `vector_find`
+against the not-yet-created `abox-nomic` collection and returned no documents.
+They are precondition failures, not MiniLM measurements, and are excluded from
+both configurations' scores. The experiment manifests now disable Flux
+reconciliation on this specific Agent; the annotation is removed when GitOps is
+restored.
+
+The later Abox preflight found that `abox-nomic` had become available with a
+768-dimensional Cosine vector and nine unique release documents. Their IDs
+covered Qdrant, Flux, llm-d, kagent, and sidecar resources, but none were the
+fixed `DOC-01` through `DOC-08` evaluation records. This collection is retained
+unchanged and excluded from scoring; the controlled Abox run uses the isolated
+`lab4-nomic` collection described above.
 
 ## Consequences
 

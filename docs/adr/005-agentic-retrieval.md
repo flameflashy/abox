@@ -1,6 +1,6 @@
 # ADR-005: Compare Agentic Retrieval with Official Qdrant MCP and Abox Qdrant MCP
 
-- Status: Experiment in progress
+- Status: Accepted
 - Date: 2026-09-29
 - Owners: Abox laboratory team
 
@@ -77,8 +77,9 @@ For each configuration:
 
 1. Apply the matching `retrieval-agent` manifest.
 2. Start a new agent chat to avoid conversation carry-over.
-3. Ask the agent to ingest the ConfigMap and verify eight successful store
-   calls.
+3. Ingest the fixed corpus and verify eight successful store calls. For the
+   Abox retry, generate the input from the measured official payloads and
+   verify byte-for-byte equality before retrieval.
 4. Run each query in a separate new chat.
 5. Record the tool called, ordered `doc_id` values, final answer, and elapsed
    time shown by the client trace.
@@ -125,7 +126,8 @@ embedding and vector-store paths. No credential value is recorded in this ADR.
 The official comparison manifest was then applied to `retrieval-agent`. The
 Agent reported Ready `True`, referenced `default-model-config`, and exposed the
 official `qdrant-store` and `qdrant-find` tools from
-`qdrant-official-mcp`. Corpus ingestion and retrieval scoring remain pending.
+`qdrant-official-mcp`. Corpus ingestion and retrieval scoring were pending at
+that point.
 
 The first ingestion attempt issued the eight store calls concurrently. One call
 created `lab4-minilm` and stored `DOC-08-inference-pool`; the other seven failed
@@ -143,31 +145,32 @@ contained eight points with eight unique document IDs.
 
 ## Results
 
-Do not replace `pending` until the corresponding run has been observed.
+Every value below is based on an observed run; no expected value is presented
+as a measured result.
 
 | Metric | Official MiniLM MCP | Abox Nomic MCP |
 |---|---:|---:|
 | Indexed documents | 8 (exact count; 8 unique IDs) | 8 (exact count; 8 unique IDs) |
 | Collection vector size | 384 (`fast-all-minilm-l6-v2`, Cosine) | 768 (`default`, Cosine) |
-| Tool-use rate | 100.0% | pending |
-| Hit@1 | 87.5% | pending |
-| Hit@3 | 87.5% | pending |
-| Grounded answer accuracy | 75.0% | pending |
-| Unsupported claims | 1 | pending |
-| Median observed latency | not recorded by UI | pending |
+| Tool-use rate | 100.0% | 100.0% |
+| Hit@1 | 87.5% | 100.0% |
+| Hit@3 | 87.5% | 100.0% |
+| Grounded answer accuracy | 75.0% | 100.0% |
+| Unsupported claims | 1 | 0 |
+| Median observed latency | not recorded by UI | not recorded by UI |
 
 ### Per-query observations
 
 | Query | Expected | Official returned IDs | Official answer | Abox returned IDs | Abox answer |
 |---|---|---|---|---|---|
-| Q01 | DOC-01-qdrant-storage | DOC-01, DOC-05, DOC-07, DOC-06, DOC-08 | Correct and grounded: `/qdrant/storage`, 5Gi | pending | pending |
-| Q02 | DOC-02-sidecar-network | DOC-02, DOC-05, DOC-07, DOC-01, DOC-03 | Correct and grounded: localhost URL and shared Pod network | pending | pending |
-| Q03 | DOC-03-flux-oci | DOC-05, DOC-01, DOC-02, DOC-03, DOC-06 | Incorrect: claimed insufficient evidence although DOC-03 was fourth | pending | pending |
-| Q04 | DOC-04-llmd-route | DOC-04, DOC-08, DOC-07, DOC-02, DOC-05 | Correct and grounded: `llm-d-embedding` route and rewrite | pending | pending |
-| Q05 | DOC-05-official-qdrant-mcp | DOC-05, DOC-06, DOC-07, DOC-01, DOC-08 | Correct and grounded: `qdrant-store`, `qdrant-find` | pending | pending |
-| Q06 | DOC-06-agent-model | DOC-06, DOC-05, DOC-07, DOC-02, DOC-04 | Correct and grounded: reasoning model is independent from embedder | pending | pending |
-| Q07 | DOC-07-abox-qdrant-mcp | DOC-07, DOC-05, DOC-08, DOC-06, DOC-02 | Incomplete: identified the server but omitted `vector_store` and `vector_find` | pending | pending |
-| Q08 | DOC-08-inference-pool | DOC-08, DOC-04, DOC-07, DOC-06, DOC-05 | Correct and grounded: matching Pods and one candidate | pending | pending |
+| Q01 | DOC-01-qdrant-storage | DOC-01, DOC-05, DOC-07, DOC-06, DOC-08 | Correct and grounded: `/qdrant/storage`, 5Gi | DOC-01, DOC-05, DOC-07, DOC-06, DOC-04 | Correct and grounded |
+| Q02 | DOC-02-sidecar-network | DOC-02, DOC-05, DOC-07, DOC-01, DOC-03 | Correct and grounded: localhost URL and shared Pod network | DOC-02, DOC-04, DOC-05, DOC-07, DOC-08 | Correct and grounded |
+| Q03 | DOC-03-flux-oci | DOC-05, DOC-01, DOC-02, DOC-03, DOC-06 | Incorrect: claimed insufficient evidence although DOC-03 was fourth | DOC-03, DOC-08, DOC-07, DOC-02, DOC-05 | Correct and grounded: OCIRepository plus Kustomization |
+| Q04 | DOC-04-llmd-route | DOC-04, DOC-08, DOC-07, DOC-02, DOC-05 | Correct and grounded: `llm-d-embedding` route and rewrite | DOC-04, DOC-08, DOC-05, DOC-07, DOC-03 | Correct and grounded |
+| Q05 | DOC-05-official-qdrant-mcp | DOC-05, DOC-06, DOC-07, DOC-01, DOC-08 | Correct and grounded: `qdrant-store`, `qdrant-find` | DOC-05, DOC-07, DOC-06, DOC-01, DOC-08 | Correct and grounded |
+| Q06 | DOC-06-agent-model | DOC-06, DOC-05, DOC-07, DOC-02, DOC-04 | Correct and grounded: reasoning model is independent from embedder | DOC-06, DOC-07, DOC-05, DOC-04, DOC-02 | Correct and grounded |
+| Q07 | DOC-07-abox-qdrant-mcp | DOC-07, DOC-05, DOC-08, DOC-06, DOC-02 | Incomplete: identified the server but omitted `vector_store` and `vector_find` | DOC-07, DOC-04, DOC-05, DOC-02, DOC-03 | Correct and grounded: `vector_store`, `vector_find` |
+| Q08 | DOC-08-inference-pool | DOC-08, DOC-04, DOC-07, DOC-06, DOC-05 | Correct and grounded: matching Pods and one candidate | DOC-08, DOC-04, DOC-07, DOC-05, DOC-06 | Correct and grounded |
 
 Before the remaining official runs, the live Agent reverted to the release's
 Abox toolset. The attempted Q02 through Q08 runs therefore called `vector_find`
@@ -193,7 +196,7 @@ official run, it is excluded from all comparison metrics. The corpus ConfigMap
 and both Agent prompts now carry reconciliation and exact-key guards; the
 dedicated `lab4-nomic` collection must be reset before the controlled retry.
 
-The controlled retry reported eight successful sequential `vector_store`
+The second ingestion attempt reported eight successful sequential `vector_store`
 calls in DOC-01 through DOC-08 order. Independent Qdrant inspection confirmed
 the `default` vector with size 768 and Cosine distance, eight total points,
 eight unique IDs, and the exact predefined ID list. The subsequent answers,
@@ -205,12 +208,29 @@ volume at `/qdrant/storage`. This run is a precondition failure and is excluded
 from all metrics. The retry requires an exact payload-to-ConfigMap comparison,
 not only matching IDs and point counts.
 
-The next retry uses a generated `DOCUMENTS_JSON` prompt built from the already
-measured `lab4-minilm` payloads. The retrieval Agent passes those JSON strings
-to `vector_store` without a delegation hop, and a separate verifier compares
-every `lab4-nomic` document byte-for-byte with its `lab4-minilm` counterpart
-before retrieval begins. This guarantees identical evaluation text while still
-exercising the default Abox MCP store tool.
+The final controlled retry used a generated `DOCUMENTS_JSON` prompt built from
+the already measured `lab4-minilm` payloads. The retrieval Agent passed those
+JSON strings to eight sequential `vector_store` calls without a delegation
+hop. Independent verification then compared every `lab4-nomic` document
+byte-for-byte with its `lab4-minilm` counterpart. All eight IDs and all eight
+SHA-256 fingerprints matched, so the Abox collection is valid for retrieval
+evaluation. This guarantees identical evaluation text while still exercising
+the default Abox MCP store tool.
+
+### Evaluation conclusion
+
+Use the Abox Nomic MCP configuration as the retrieval baseline for this
+project. In this controlled run it ranked the expected document first for all
+eight English, Ukrainian, and Russian queries, while the official MiniLM
+configuration did so for seven. It also produced eight grounded answers,
+compared with six for the official configuration. Both configurations selected
+their retrieval tool for every query.
+
+This result applies to the fixed eight-document corpus and one observed Agent
+run. It does not establish that Nomic is universally better than MiniLM; a
+larger corpus, repeated runs, and recorded latency would be required for that
+claim. Latency is excluded because the UI did not expose a value for either
+configuration.
 
 ## Consequences
 

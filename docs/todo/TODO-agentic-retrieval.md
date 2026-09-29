@@ -513,10 +513,12 @@ have been recorded.
 
 ## 11. Restore GitOps and stop temporary processes
 
-Choose which agent variant should remain as the repository result. ADR-005 uses
-the official variant as the selected configuration, so apply it before resuming
-only if the release artifact has also been updated to contain that manifest.
-Otherwise Flux will deliberately restore the published release version.
+ADR-005 selects the Abox Nomic implementation as the project baseline for the
+observed corpus. The published feature release already owns the supported Abox
+MCP and retrieval Agent, so removing the experiment guard and resuming Flux
+deliberately restores that release-managed configuration. The isolated
+`qdrant-mcp-lab4` and both lab collections remain as reproducible experiment
+evidence unless they are removed explicitly.
 
 ```bash
 kill "$QDRANT_PF_PID"
@@ -539,7 +541,7 @@ kubectl -n flux-system get kustomization releases
 
 ## 12. Complete the records
 
-Replace every `pending` cell in ADR-005 with observed evidence. Add the release
+Confirm that ADR-005 contains no pending experiment cells. Record the release
 revision, collection sizes, point counts, tool traces, per-query results, and
 the final comparison. Then update `CHANGELOG.md` with what was deployed and
 measured. Prepared manifests or expected dimensions are not execution results.

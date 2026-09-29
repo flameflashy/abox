@@ -7,3 +7,11 @@ official	Q05	qdrant-find	DOC-05-official-qdrant-mcp,DOC-06-agent-model,DOC-07-ab
 official	Q06	qdrant-find	DOC-06-agent-model,DOC-05-official-qdrant-mcp,DOC-07-abox-qdrant-mcp,DOC-02-sidecar-network,DOC-04-llmd-route	1	0	NA
 official	Q07	qdrant-find	DOC-07-abox-qdrant-mcp,DOC-05-official-qdrant-mcp,DOC-08-inference-pool,DOC-06-agent-model,DOC-02-sidecar-network	0	0	NA
 official	Q08	qdrant-find	DOC-08-inference-pool,DOC-04-llmd-route,DOC-07-abox-qdrant-mcp,DOC-06-agent-model,DOC-05-official-qdrant-mcp	1	0	NA
+abox	Q01	vector_find	DOC-01-qdrant-storage,DOC-05-official-qdrant-mcp,DOC-07-abox-qdrant-mcp,DOC-06-agent-model,DOC-04-llmd-route	1	0	NA
+abox	Q02	vector_find	DOC-02-sidecar-network,DOC-04-llmd-route,DOC-05-official-qdrant-mcp,DOC-07-abox-qdrant-mcp,DOC-08-inference-pool	1	0	NA
+abox	Q03	vector_find	DOC-03-flux-oci,DOC-08-inference-pool,DOC-07-abox-qdrant-mcp,DOC-02-sidecar-network,DOC-05-official-qdrant-mcp	1	0	NA
+abox	Q04	vector_find	DOC-04-llmd-route,DOC-08-inference-pool,DOC-05-official-qdrant-mcp,DOC-07-abox-qdrant-mcp,DOC-03-flux-oci	1	0	NA
+abox	Q05	vector_find	DOC-05-official-qdrant-mcp,DOC-07-abox-qdrant-mcp,DOC-06-agent-model,DOC-01-qdrant-storage,DOC-08-inference-pool	1	0	NA
+abox	Q06	vector_find	DOC-06-agent-model,DOC-07-abox-qdrant-mcp,DOC-05-official-qdrant-mcp,DOC-04-llmd-route,DOC-02-sidecar-network	1	0	NA
+abox	Q07	vector_find	DOC-07-abox-qdrant-mcp,DOC-04-llmd-route,DOC-05-official-qdrant-mcp,DOC-02-sidecar-network,DOC-03-flux-oci	1	0	NA
+abox	Q08	vector_find	DOC-08-inference-pool,DOC-04-llmd-route,DOC-07-abox-qdrant-mcp,DOC-05-official-qdrant-mcp,DOC-06-agent-model	1	0	NA

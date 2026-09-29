@@ -62,7 +62,7 @@
 - Excluded the first isolated Abox ingestion because its eight points came from
   a different release corpus. Added a Flux reconciliation guard to the fixed
   corpus ConfigMap and exact expected-key validation to both Agent prompts.
-- Completed the controlled Abox retry with eight sequential `vector_store`
+- The second Abox ingestion attempt made eight sequential `vector_store`
   calls. Independent inspection confirmed the exact eight predefined IDs in
   eight points and a 768-dimensional `default` vector with Cosine distance.
   Retrieval answers then contradicted the fixed manifests. Payload inspection
@@ -76,7 +76,14 @@
   collection payloads. This removes the unreliable Agent delegation
   hop, guarantees the same document bytes for both embedders, and retains eight
   sequential calls to the selected MCP store tool.
-- Abox Agentic Retrieval measurements are pending.
+- Completed the final controlled Abox ingestion from the official collection.
+  All eight `lab4-nomic` IDs and SHA-256 fingerprints match their
+  `lab4-minilm` counterparts exactly.
+- Completed the eight-query Abox Nomic run: 100% retrieval-tool use, 100%
+  Hit@1, 100% Hit@3, 100% grounded answer accuracy, and no unsupported claims.
+  The UI did not expose latency. ADR-005 selects this configuration as the
+  project baseline while limiting the conclusion to the observed corpus and
+  run.
 
 ## Unreleased — Laboratory 3 (2026-09-22)
 

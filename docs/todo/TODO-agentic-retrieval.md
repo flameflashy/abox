@@ -388,6 +388,19 @@ endpoint, and exposes the same tools. Isolation prevents the nine existing
 
 ## 9. Index the identical corpus with the Abox MCP
 
+Reapply the fixed corpus immediately before ingestion and verify its keys. The
+Flux reconciliation guard on the ConfigMap prevents a release-owned corpus from
+replacing it during the experiment:
+
+```bash
+kubectl apply -f docs/examples/lab4/retrieval-corpus.yaml
+kubectl -n kagent get configmap agentic-retrieval-corpus \
+  -o go-template='{{range $key, $value := .data}}{{$key}}{{"\n"}}{{end}}'
+```
+
+The keys must match `DOC-01-qdrant-storage.yaml` through the predefined
+`DOC-08-inference-pool.yaml` list in the Agent prompt. Stop if any key differs.
+
 Start a new `retrieval-agent` chat and send:
 
 ```text
@@ -433,6 +446,16 @@ print("unique_doc_ids:", len(set(doc_ids)))
 Expected evidence is vector size 768. Eight short inputs should produce eight
 points and eight unique IDs; if chunking creates more, record the actual count
 and inspect why.
+
+If the point count is eight but the IDs differ from the predefined corpus, the
+run is invalid. Delete only the dedicated `lab4-nomic` collection, reapply the
+fixed ConfigMap and Agent manifests, and repeat ingestion. Never delete the
+release-owned `abox-nomic` collection.
+
+```bash
+curl --fail --silent -X DELETE \
+  http://127.0.0.1:6333/collections/lab4-nomic | python3 -m json.tool
+```
 
 ## 10. Run and score the Abox-MCP queries
 

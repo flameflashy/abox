@@ -184,6 +184,15 @@ fixed `DOC-01` through `DOC-08` evaluation records. This collection is retained
 unchanged and excluded from scoring; the controlled Abox run uses the isolated
 `lab4-nomic` collection described above.
 
+The first isolated Abox ingestion produced the expected 768-dimensional Cosine
+vector and eight unique points, but its `DOC-04` through `DOC-08` IDs belonged
+to a different release corpus: `DOC-04-abox-mcpserver`,
+`DOC-05-abox-mcpagent`, `DOC-06-abox-httproute`, `DOC-07-inference-pool`, and
+`DOC-08-abox-configmap`. Because it did not use the same documents as the
+official run, it is excluded from all comparison metrics. The corpus ConfigMap
+and both Agent prompts now carry reconciliation and exact-key guards; the
+dedicated `lab4-nomic` collection must be reset before the controlled retry.
+
 ## Consequences
 
 - The experiment compares complete agent behavior, including whether the model

@@ -59,6 +59,9 @@
   768-dimensional Cosine vector and already contains nine unique operational
   documents. Preserved that data and prepared the isolated `lab4-nomic`
   collection for the controlled Abox run.
+- Excluded the first isolated Abox ingestion because its eight points came from
+  a different release corpus. Added a Flux reconciliation guard to the fixed
+  corpus ConfigMap and exact expected-key validation to both Agent prompts.
 - Abox corpus ingestion and Agentic Retrieval measurements are pending.
   Expected dimensions and prepared manifests are not recorded as observed
   results.

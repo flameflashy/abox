@@ -25,7 +25,19 @@ spec:
       Ingest only when the user explicitly asks. For the lab corpus, delegate
       once to k8s-agent and ask it for the complete YAML of ConfigMap
       kagent/agentic-retrieval-corpus. Treat each key under data as one separate
-      document. Call vector_store exactly once for every data entry:
+      document. Before storing anything, verify that the data keys are exactly:
+
+      - DOC-01-qdrant-storage.yaml
+      - DOC-02-sidecar-network.yaml
+      - DOC-03-flux-oci.yaml
+      - DOC-04-llmd-route.yaml
+      - DOC-05-official-qdrant-mcp.yaml
+      - DOC-06-agent-model.yaml
+      - DOC-07-abox-qdrant-mcp.yaml
+      - DOC-08-inference-pool.yaml
+
+      If any key is missing or different, make no store calls and report the
+      mismatch. Otherwise, call vector_store exactly once for every data entry:
 
       - information: the complete value, unchanged;
       - metadata.doc_id: the data key without the .yaml suffix;

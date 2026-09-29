@@ -324,7 +324,7 @@ Use `docs/examples/lab4/evaluation-queries.tsv`. Start a new chat for each query
 so earlier answers do not influence later ones. Prefix each query with:
 
 ```text
-This is a retrieval-only evaluation. Search the indexed corpus, answer only from the retrieved documents, and list the returned doc_id values in order.
+This is a retrieval-only evaluation. Call the configured retrieval tool exactly once. Search the indexed corpus and answer only from the retrieved documents. Report every returned doc_id in the exact tool-result order, including irrelevant hits, using the EVALUATION_TOOL and EVALUATION_RETURNED_DOC_IDS lines required by your system instructions.
 ```
 
 Record the tool trace, ordered IDs, answer, and elapsed time in ADR-005. Do not
@@ -339,7 +339,9 @@ official	Q01	qdrant-find	DOC-01-qdrant-storage,DOC-07-abox-qdrant-mcp	1	0	3.42
 The columns mean: configuration, query ID, tool observed in the trace, returned
 document IDs in tool order, whether every answer claim is grounded (`1` or
 `0`), number of unsupported factual claims, and elapsed seconds. The example is
-only a format illustration; record the actual trace and latency.
+only a format illustration; record the actual trace and latency. Leave latency
+empty when neither the UI nor the trace exposes it; the scorer will report that
+latency was not recorded rather than inventing a value.
 
 ## 8. Switch to the Abox MCP toolset
 

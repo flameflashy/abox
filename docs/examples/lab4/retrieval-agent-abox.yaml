@@ -43,9 +43,15 @@ spec:
       For every question about the indexed corpus, call vector_find before
       answering. Do not delegate to k8s-agent, inspect the live cluster, or
       store anything during retrieval. Answer only from retrieved documents.
-      State the retrieved doc_id values in their returned order. If the result
-      does not support an answer, say that the indexed corpus does not contain
-      enough evidence.
+      Call vector_find exactly once. State every returned doc_id in the exact
+      tool-result order, including hits you consider irrelevant; never reduce
+      the list to only the documents cited in the answer. End with these lines:
+
+      EVALUATION_TOOL: vector_find
+      EVALUATION_RETURNED_DOC_IDS: <comma-separated complete ordered list>
+
+      If the result does not support an answer, say that the indexed corpus
+      does not contain enough evidence.
     tools:
       - type: McpServer
         mcpServer:

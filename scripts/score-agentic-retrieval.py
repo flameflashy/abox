@@ -76,12 +76,14 @@ def main() -> int:
         ]
         try:
             unsupported_claims = int(row["unsupported_claims"])
-            latency = float(row["latency_seconds"])
+            latency_text = row["latency_seconds"].strip()
+            latency = float(latency_text) if latency_text else None
         except ValueError as error:
             raise ValueError(
-                f"row {number}: unsupported_claims and latency_seconds must be numeric"
+                f"row {number}: unsupported_claims must be an integer and "
+                "latency_seconds must be numeric or empty"
             ) from error
-        if unsupported_claims < 0 or latency < 0:
+        if unsupported_claims < 0 or (latency is not None and latency < 0):
             raise ValueError(f"row {number}: numeric values cannot be negative")
 
         expected_id = expected[query_id]
@@ -108,12 +110,16 @@ def main() -> int:
             continue
         count = len(rows)
         percentage = lambda field: f"{sum(int(r[field]) for r in rows) / count:.1%}"
+        latencies = [float(r["latency"]) for r in rows if r["latency"] is not None]
+        median_latency = (
+            f"{statistics.median(latencies):.2f}s" if latencies else "not recorded"
+        )
         print(
             f"| {configuration} | {count} | {percentage('tool')} | "
             f"{percentage('hit1')} | {percentage('hit3')} | "
             f"{percentage('grounded')} | "
             f"{sum(int(r['unsupported']) for r in rows)} | "
-            f"{statistics.median(float(r['latency']) for r in rows):.2f}s |"
+            f"{median_latency} |"
         )
 
     missing = [

@@ -152,14 +152,14 @@ Do not replace `pending` until the corresponding run has been observed.
 
 | Query | Expected | Official returned IDs | Official answer | Abox returned IDs | Abox answer |
 |---|---|---|---|---|---|
-| Q01 | DOC-01-qdrant-storage | pending | pending | pending | pending |
-| Q02 | DOC-02-sidecar-network | pending | pending | pending | pending |
-| Q03 | DOC-03-flux-oci | pending | pending | pending | pending |
-| Q04 | DOC-04-llmd-route | pending | pending | pending | pending |
-| Q05 | DOC-05-official-qdrant-mcp | pending | pending | pending | pending |
-| Q06 | DOC-06-agent-model | pending | pending | pending | pending |
-| Q07 | DOC-07-abox-qdrant-mcp | pending | pending | pending | pending |
-| Q08 | DOC-08-inference-pool | pending | pending | pending | pending |
+| Q01 | DOC-01-qdrant-storage | trace payload pending | Correct and grounded: `/qdrant/storage`, 5Gi | pending | pending |
+| Q02 | DOC-02-sidecar-network | trace payload pending | Correct and grounded: localhost URL and shared Pod network | pending | pending |
+| Q03 | DOC-03-flux-oci | trace payload pending | Correct and grounded: Flux OCIRepository plus Kustomization | pending | pending |
+| Q04 | DOC-04-llmd-route | trace payload pending | Correct and grounded: `llm-d-embedding` route and rewrite | pending | pending |
+| Q05 | DOC-05-official-qdrant-mcp | trace payload pending | Correct and grounded: `qdrant-store`, `qdrant-find` | pending | pending |
+| Q06 | DOC-06-agent-model | trace payload pending | Correct and grounded: reasoning model is independent from embedder | pending | pending |
+| Q07 | DOC-07-abox-qdrant-mcp | trace payload pending | Correct and grounded: Abox tools use external Nomic endpoint | pending | pending |
+| Q08 | DOC-08-inference-pool | tool call not visible in supplied trace | Correct content; grounding requires tool-call confirmation | pending | pending |
 
 ## Consequences
 

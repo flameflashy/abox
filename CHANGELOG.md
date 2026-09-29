@@ -71,6 +71,9 @@
 - Added an exact corpus verifier that compares every indexed `document` payload
   with the live ConfigMap and reports SHA-256 fingerprints. Strengthened both
   ingestion prompts with live-read requirements and content sentinels.
+- Added a direct ingestion-prompt generator that JSON-encodes the live
+  ConfigMap values. This removes the unreliable Agent delegation hop while
+  retaining eight sequential calls to the selected MCP store tool.
 - Abox Agentic Retrieval measurements are pending.
 
 ## Unreleased — Laboratory 3 (2026-09-22)

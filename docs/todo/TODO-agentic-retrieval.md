@@ -401,11 +401,19 @@ kubectl -n kagent get configmap agentic-retrieval-corpus \
 The keys must match `DOC-01-qdrant-storage.yaml` through the predefined
 `DOC-08-inference-pool.yaml` list in the Agent prompt. Stop if any key differs.
 
-Start a new `retrieval-agent` chat and send:
+Generate a direct ingestion prompt from the live ConfigMap. JSON encoding keeps
+the exact strings and avoids relying on another Agent to reconstruct the
+manifests:
 
-```text
-Ingest the evaluation corpus from ConfigMap kagent/agentic-retrieval-corpus exactly as your system instructions specify. Call vector_store strictly one at a time in DOC-01 through DOC-08 order, waiting for each result before starting the next call. Never issue parallel tool calls. Stop on the first error. Report every stored doc_id and the number of successful vector_store calls.
+```bash
+python3 scripts/build-agentic-ingestion-prompt.py \
+  --tool vector_store > /tmp/lab4-abox-ingestion.txt
+cat /tmp/lab4-abox-ingestion.txt
 ```
+
+Start a new `retrieval-agent` chat and paste the complete generated prompt. The
+Agent must call `vector_store` eight times sequentially without delegating to
+`k8s-agent`.
 
 Verify the collection:
 

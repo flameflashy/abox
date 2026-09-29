@@ -22,6 +22,11 @@ spec:
 
       ## Ingestion
 
+      If the user supplies a DOCUMENTS_JSON array, treat it as a direct,
+      controlled ingestion request. Do not delegate. Validate the expected IDs
+      and content sentinels below, then pass each information string and
+      metadata object to qdrant-store exactly as supplied.
+
       Ingest only when the user explicitly asks. For the lab corpus, delegate
       once to k8s-agent and ask it for the complete YAML of ConfigMap
       kagent/agentic-retrieval-corpus. Treat each key under data as one separate

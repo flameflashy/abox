@@ -26,6 +26,61 @@ oci://ghcr.io/den-vasyliev/abox/releases-llmd-embeddings
 
 Record the actual tag and revision in the ADR results notes.
 
+If the cluster still reports `oci://ghcr.io/den-vasyliev/abox/releases`, switch
+all three levels of the GitOps configuration. The input provider discovers the
+branch tags, the ResourceSet template defines the generated source URL, and the
+OCIRepository is patched immediately so the change does not wait for the next
+five-minute provider poll.
+
+Inspect the ResourceSet first. Its first rendered resource must be the
+`OCIRepository/releases` object:
+
+```bash
+kubectl -n flux-system get resourceset releases \
+  -o jsonpath='{range .spec.resources[*]}{.kind}{" => "}{.spec.url}{"\n"}{end}'
+```
+
+Then switch to the feature release:
+
+```bash
+RELEASE_URL='oci://ghcr.io/den-vasyliev/abox/releases-llmd-embeddings'
+
+kubectl -n flux-system patch resourcesetinputprovider releases-image \
+  --type=merge \
+  -p "{\"spec\":{\"url\":\"${RELEASE_URL}\",\"defaultValues\":{\"tag\":\"0.9.5\"}}}"
+
+kubectl -n flux-system patch resourceset releases \
+  --type=json \
+  -p "[{\"op\":\"replace\",\"path\":\"/spec/resources/0/spec/url\",\"value\":\"${RELEASE_URL}\"}]"
+
+kubectl -n flux-system patch ocirepository releases \
+  --type=merge \
+  -p "{\"spec\":{\"url\":\"${RELEASE_URL}\",\"ref\":{\"tag\":\"0.9.5\"}}}"
+
+flux reconcile source oci releases -n flux-system
+flux reconcile kustomization releases-crds -n flux-system --with-source
+flux reconcile kustomization releases -n flux-system --with-source
+```
+
+Wait for reconciliation and verify that the source URL, tag, revision, and both
+Kustomizations are ready:
+
+```bash
+kubectl -n flux-system get ocirepository releases \
+  -o jsonpath='{.spec.url}{"\n"}{.spec.ref.tag}{"\n"}{.status.artifact.revision}{"\n"}'
+
+flux get sources oci -n flux-system
+flux get kustomizations -n flux-system
+kubectl get pods -A
+```
+
+The switch is reversible by setting the three URLs back to
+`oci://ghcr.io/den-vasyliev/abox/releases`, the input provider fallback tag back
+to the desired main release, and the child tag to the same value. Do not run
+`tofu apply` from the old main checkout during the experiment because its
+bootstrap configuration hardcodes the main artifact and would revert these
+objects.
+
 ## 2. Verify the agent model configuration
 
 `default-model-config` is the reasoning/chat model. It is independent from the

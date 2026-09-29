@@ -20,7 +20,12 @@
 
 ### Execution status
 
-- Cluster execution and Agentic Retrieval measurements are pending. Expected
+- Preflight inspection found the cluster on the main `releases:0.8.9` OCI
+  artifact rather than `releases-llmd-embeddings`. `k8s-agent` was Ready on
+  `default-model-config`, while `retrieval-agent` was not Ready because it still
+  referenced `gemini-gemini-2-5-flash`.
+- Switching to the required feature release, official MCP deployment, corpus
+  ingestion, and Agentic Retrieval measurements are pending. Expected
   dimensions and prepared manifests are not recorded as observed results.
 
 ## Unreleased — Laboratory 3 (2026-09-22)

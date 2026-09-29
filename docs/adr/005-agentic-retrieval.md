@@ -85,6 +85,24 @@ Metrics:
 - **Unsupported-claim count:** factual claims absent from retrieved documents.
 - **Median observed latency:** median end-to-end duration from the agent trace.
 
+## Preflight evidence
+
+The first cluster inspection on 2026-09-29 found that the experiment had not
+yet started from the required feature release:
+
+| Check | Observed value | Interpretation |
+|---|---|---|
+| OCI source | `oci://ghcr.io/den-vasyliev/abox/releases` | Main release stream, not the required feature stream |
+| OCI revision | `0.8.9@sha256:ae9363e44d98d9ad7aeba35485bfde2f5e683598869b95ea48ac6bcf08c77b40` | Step 1 not complete |
+| `retrieval-agent` model | `gemini-gemini-2-5-flash`, Ready `Unknown` | Stale reference from the main 0.8.9 release |
+| `k8s-agent` model | `default-model-config`, Ready `True` | Correct |
+| default model | OpenAI `gpt-4.1-mini`, Accepted `True` | Valid shared reasoning model |
+| existing MCP image | `ghcr.io/den-vasyliev/abox/qdrant-mcp:0.4.0` | Abox MCP, not the official Qdrant MCP |
+
+The release source must be corrected before measuring either retrieval
+configuration. Otherwise the agent-model failure would confound the embedding
+comparison.
+
 ## Results
 
 Do not replace `pending` until the corresponding run has been observed.

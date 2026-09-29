@@ -1,0 +1,9 @@
+query_id	language	query	expected_doc_id
+Q01	en	Where does Qdrant persist its data and how much storage is requested?	DOC-01-qdrant-storage
+Q02	uk	Як застосунок звертається до embedding sidecar у тому самому Pod?	DOC-02-sidecar-network
+Q03	ru	Какой компонент сверяет кластер с OCI-артефактом релиза?	DOC-03-flux-oci
+Q04	en	Which route bypasses the endpoint picker and sends embeddings directly to the decode Service?	DOC-04-llmd-route
+Q05	en	Which MCP tools are provided by the official Qdrant server?	DOC-05-official-qdrant-mcp
+Q06	ru	Чем модель агента отличается от embedding-модели MCP сервера?	DOC-06-agent-model
+Q07	en	Which tools use Nomic embeddings produced by the external llama.cpp endpoint?	DOC-07-abox-qdrant-mcp
+Q08	uk	Що обирає endpoint picker і скільки кандидатів є з однією decode-реплікою?	DOC-08-inference-pool

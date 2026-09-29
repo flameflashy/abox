@@ -1,5 +1,28 @@
 # Changelog
 
+## Unreleased — Laboratory 4 (2026-09-29)
+
+### Prepared
+
+- Added an official Qdrant MCP manifest pinned to
+  `mcp-server-qdrant==0.8.1`, with FastEmbed and
+  `sentence-transformers/all-MiniLM-L6-v2` writing to the isolated
+  `lab4-minilm` collection.
+- Added official and Abox variants of `retrieval-agent`. Both use
+  `default-model-config`, the same ingestion/retrieval rules, and the same
+  `k8s-agent` delegate; only the MCP server and vector tool names differ.
+- Added a fixed eight-document Kubernetes corpus and eight predefined English,
+  Ukrainian, and Russian queries with expected document IDs.
+- Added [ADR-005](docs/adr/005-agentic-retrieval.md), the
+  [execution runbook](docs/todo/TODO-agentic-retrieval.md), and a scorer for
+  tool-use rate, Hit@1, Hit@3, grounded answer accuracy, unsupported claims,
+  and median observed latency.
+
+### Execution status
+
+- Cluster execution and Agentic Retrieval measurements are pending. Expected
+  dimensions and prepared manifests are not recorded as observed results.
+
 ## Unreleased — Laboratory 3 (2026-09-22)
 
 ### Prepared

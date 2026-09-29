@@ -1,0 +1,43 @@
+apiVersion: kagent.dev/v1alpha1
+kind: MCPServer
+metadata:
+  name: qdrant-official-mcp
+  namespace: kagent
+  labels:
+    app.kubernetes.io/part-of: lab4-agentic-retrieval
+spec:
+  transportType: stdio
+  stdioTransport: {}
+  deployment:
+    # kagent supports deploying Python MCP packages through uvx. Pin both the
+    # uv runtime and the official Qdrant MCP package so the lab is repeatable.
+    image: ghcr.io/astral-sh/uv:0.12.19-python3.11-trixie-slim
+    cmd: uvx
+    args:
+      - --from
+      - mcp-server-qdrant==0.8.1
+      - mcp-server-qdrant
+    env:
+      QDRANT_URL: http://qdrant.qdrant:6333
+      COLLECTION_NAME: lab4-minilm
+      EMBEDDING_PROVIDER: fastembed
+      EMBEDDING_MODEL: sentence-transformers/all-MiniLM-L6-v2
+      QDRANT_SEARCH_LIMIT: "5"
+      QDRANT_READ_ONLY: "false"
+      TOOL_STORE_DESCRIPTION: >-
+        Store one evaluation document in the lab4-minilm collection. Preserve
+        the supplied text exactly and include doc_id, source, and language in
+        metadata. Use only during an explicit ingestion request.
+      TOOL_FIND_DESCRIPTION: >-
+        Search the lab4-minilm evaluation collection by semantic similarity.
+        Use for every retrieval question and return the retrieved document IDs
+        with the answer.
+      UV_CACHE_DIR: /tmp/uv-cache
+      XDG_CACHE_HOME: /tmp/cache
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: "1"
+        memory: 1Gi

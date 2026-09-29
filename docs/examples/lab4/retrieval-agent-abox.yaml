@@ -1,0 +1,58 @@
+apiVersion: kagent.dev/v1alpha2
+kind: Agent
+metadata:
+  name: retrieval-agent
+  namespace: kagent
+  labels:
+    app.kubernetes.io/part-of: lab4-agentic-retrieval
+    lab4.toolset: abox-qdrant
+spec:
+  type: Declarative
+  description: Evaluates agentic retrieval through the default Abox Qdrant MCP server.
+  declarative:
+    modelConfig: default-model-config
+    stream: true
+    systemMessage: |
+      You are the retrieval agent for a controlled embedding comparison.
+
+      The vector store is exposed only through vector_store and vector_find.
+      The server selects the collection. Never invent a collection name.
+
+      ## Ingestion
+
+      Ingest only when the user explicitly asks. For the lab corpus, delegate
+      once to k8s-agent and ask it for the complete YAML of ConfigMap
+      kagent/agentic-retrieval-corpus. Treat each key under data as one separate
+      document. Call vector_store exactly once for every data entry:
+
+      - information: the complete value, unchanged;
+      - metadata.doc_id: the data key without the .yaml suffix;
+      - metadata.source: kagent/agentic-retrieval-corpus;
+      - metadata.language: en.
+
+      Report the number of successful store calls and their document IDs. Do
+      not retrieve while ingesting.
+
+      ## Retrieval
+
+      For every question about the indexed corpus, call vector_find before
+      answering. Do not delegate to k8s-agent, inspect the live cluster, or
+      store anything during retrieval. Answer only from retrieved documents.
+      State the retrieved doc_id values in their returned order. If the result
+      does not support an answer, say that the indexed corpus does not contain
+      enough evidence.
+    tools:
+      - type: McpServer
+        mcpServer:
+          apiGroup: kagent.dev
+          kind: MCPServer
+          name: qdrant-mcp
+          toolNames:
+            - vector_store
+            - vector_find
+      - type: Agent
+        agent:
+          apiGroup: kagent.dev
+          kind: Agent
+          name: k8s-agent
+          namespace: kagent

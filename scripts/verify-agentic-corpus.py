@@ -8,6 +8,7 @@ import hashlib
 import json
 import subprocess
 import sys
+import urllib.error
 import urllib.request
 
 
@@ -86,7 +87,23 @@ def main() -> int:
     indexed: dict[str, list[str]] = {}
     unknown_points = 0
 
-    for point in scroll_points(args.qdrant_url, args.collection):
+    try:
+        points = scroll_points(args.qdrant_url, args.collection)
+    except urllib.error.HTTPError as error:
+        if error.code == 404:
+            print(
+                f"Qdrant collection {args.collection!r} was not found. "
+                "Run the ingestion before verification.",
+                file=sys.stderr,
+            )
+        else:
+            print(f"Qdrant returned HTTP {error.code}: {error.reason}", file=sys.stderr)
+        return 2
+    except urllib.error.URLError as error:
+        print(f"Cannot reach Qdrant: {error.reason}", file=sys.stderr)
+        return 2
+
+    for point in points:
         payload = point.get("payload", {})
         doc_id = point_doc_id(payload, args.layout)
         document = payload.get("document")

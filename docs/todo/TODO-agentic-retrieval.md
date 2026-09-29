@@ -57,9 +57,32 @@ kubectl -n flux-system patch ocirepository releases \
   --type=merge \
   -p "{\"spec\":{\"url\":\"${RELEASE_URL}\",\"ref\":{\"tag\":\"0.9.5\"}}}"
 
-flux reconcile source oci releases -n flux-system
-flux reconcile kustomization releases-crds -n flux-system --with-source
-flux reconcile kustomization releases -n flux-system --with-source
+SOURCE_REQUEST="$(date -u +%s)-source"
+kubectl -n flux-system annotate ocirepository releases \
+  reconcile.fluxcd.io/requestedAt="${SOURCE_REQUEST}" --overwrite
+kubectl -n flux-system wait ocirepository/releases \
+  --for="jsonpath={.status.lastHandledReconcileAt}=${SOURCE_REQUEST}" \
+  --timeout=5m
+kubectl -n flux-system wait ocirepository/releases \
+  --for=condition=Ready=True --timeout=5m
+
+CRDS_REQUEST="$(date -u +%s)-crds"
+kubectl -n flux-system annotate kustomization releases-crds \
+  reconcile.fluxcd.io/requestedAt="${CRDS_REQUEST}" --overwrite
+kubectl -n flux-system wait kustomization/releases-crds \
+  --for="jsonpath={.status.lastHandledReconcileAt}=${CRDS_REQUEST}" \
+  --timeout=10m
+kubectl -n flux-system wait kustomization/releases-crds \
+  --for=condition=Ready=True --timeout=10m
+
+RELEASE_REQUEST="$(date -u +%s)-release"
+kubectl -n flux-system annotate kustomization releases \
+  reconcile.fluxcd.io/requestedAt="${RELEASE_REQUEST}" --overwrite
+kubectl -n flux-system wait kustomization/releases \
+  --for="jsonpath={.status.lastHandledReconcileAt}=${RELEASE_REQUEST}" \
+  --timeout=10m
+kubectl -n flux-system wait kustomization/releases \
+  --for=condition=Ready=True --timeout=10m
 ```
 
 Wait for reconciliation and verify that the source URL, tag, revision, and both
@@ -69,8 +92,8 @@ Kustomizations are ready:
 kubectl -n flux-system get ocirepository releases \
   -o jsonpath='{.spec.url}{"\n"}{.spec.ref.tag}{"\n"}{.status.artifact.revision}{"\n"}'
 
-flux get sources oci -n flux-system
-flux get kustomizations -n flux-system
+kubectl -n flux-system get ocirepository releases
+kubectl -n flux-system get kustomization releases-crds releases
 kubectl get pods -A
 ```
 
@@ -104,14 +127,73 @@ kubectl -n kagent patch agent k8s-agent --type=merge \
 Re-run the first command and record the result. Do not point an Agent at llm-d's
 Nomic endpoint: that endpoint produces embeddings and has no generation head.
 
+`Ready` or `Accepted` validates the Kubernetes configuration; it does not make
+an authenticated request to the model provider. Inspect the Secret reference
+without printing its value:
+
+```bash
+kubectl -n kagent get modelconfig default-model-config \
+  -o jsonpath='{.spec.provider}{"\n"}{.spec.model}{"\n"}{.spec.apiKeySecret}{"\n"}{.spec.apiKeySecretKey}{"\n"}'
+```
+
+For the OpenAI configuration shipped by release 0.9.5, the last two lines must
+be `kagent-openai` and `OPENAI_API_KEY`. A 401 error that masks the supplied key
+as `OPENAI_A***_KEY` means the chart's literal development placeholder reached
+the provider. If the ModelConfig is absent, create it in the kagent UI with the
+name `default-model-config`, provider `OpenAI`, model `gpt-4.1-mini`, and a real
+API key. Keep this exact name because both lab Agent manifests reference it.
+
+Alternatively, when the ModelConfig and its Secret reference already exist,
+replace only the live Secret by entering the real key silently:
+
+```bash
+read -rsp 'OpenAI API key: ' KAGENT_OPENAI_KEY
+echo
+
+printf 'OPENAI_API_KEY=%s\n' "$KAGENT_OPENAI_KEY" | \
+  kubectl -n kagent create secret generic kagent-openai \
+    --from-env-file=/dev/stdin \
+    --dry-run=client -o yaml | \
+  kubectl apply -f -
+
+unset KAGENT_OPENAI_KEY
+```
+
+The pipeline sends the generated Secret manifest directly to the API server;
+it does not print the key. Do not paste the key or decoded Secret into the lab
+records. Restart the generated agent Deployments so processes that loaded the
+old Secret value at startup receive the new value:
+
+```bash
+while read -r deployment; do
+  [ -z "$deployment" ] && continue
+  kubectl -n kagent rollout restart "$deployment"
+  kubectl -n kagent rollout status "$deployment" --timeout=5m
+done < <(
+  kubectl -n kagent get deployment -o name | \
+    grep -E '(k8s-agent|retrieval-agent)' || true
+)
+```
+
+Open a new chat session and send a simple message to `kagent/k8s-agent`. A new
+session avoids reusing runtime state created with the invalid credential.
+
+This live Secret update is suitable for the lab. A Helm upgrade can restore the
+placeholder because the published release sets `providers.openAI.apiKey`
+inline. A durable environment must remove that inline value, reference a Secret
+created outside the chart, and populate it with a secret manager or another
+out-of-band mechanism.
+
 ## 3. Pause GitOps while switching the experiment manifests
 
 The release owns `retrieval-agent`. Flux can otherwise restore the release
 version during the test.
 
 ```bash
-flux suspend kustomization releases -n flux-system
-flux get kustomizations -n flux-system
+kubectl -n flux-system patch kustomization releases \
+  --type=merge -p '{"spec":{"suspend":true}}'
+kubectl -n flux-system get kustomization releases \
+  -o custom-columns='NAME:.metadata.name,SUSPENDED:.spec.suspend,READY:.status.conditions[?(@.type=="Ready")].status,REVISION:.status.lastAppliedRevision'
 ```
 
 Resume it after the experiment in step 11.
@@ -170,27 +252,71 @@ requires `qdrant-find` during retrieval.
 Open a new `retrieval-agent` chat in the kagent UI and send this exact request:
 
 ```text
-Ingest the evaluation corpus from ConfigMap kagent/agentic-retrieval-corpus exactly as your system instructions specify. Report every stored doc_id and the number of successful qdrant-store calls.
+Ingest the evaluation corpus from ConfigMap kagent/agentic-retrieval-corpus exactly as your system instructions specify. Call qdrant-store strictly one at a time in DOC-01 through DOC-08 order, waiting for each result before starting the next call. Never issue parallel tool calls. Stop on the first error. Report every stored doc_id and the number of successful qdrant-store calls.
 ```
 
 The trace must show one delegation to `k8s-agent` and eight `qdrant-store`
-calls. Verify the collection independently:
+calls. The sequential requirement avoids a first-write race in the official
+server's automatic collection creation. If a failed attempt partially populated
+the dedicated collection, delete only `lab4-minilm` before retrying so duplicate
+points cannot contaminate the comparison:
 
 ```bash
 kubectl -n qdrant port-forward service/qdrant 6333:6333 >/tmp/qdrant-port-forward.log 2>&1 &
 QDRANT_PF_PID=$!
 
-curl --fail --silent http://127.0.0.1:6333/collections/lab4-minilm \
+curl --fail --silent -X DELETE \
+  http://127.0.0.1:6333/collections/lab4-minilm \
   | python3 -m json.tool
+```
+
+Open a new chat after reapplying the Agent manifest and repeat the request. Then
+verify the collection independently:
+
+```bash
+curl --fail --silent http://127.0.0.1:6333/collections/lab4-minilm | \
+python3 -c '
+import json, sys
+response = json.load(sys.stdin)
+result = response["result"]
+vectors = result["config"]["params"]["vectors"]
+named_vectors = {"default": vectors} if "size" in vectors else vectors
+print("status:", response["status"])
+for name, config in named_vectors.items():
+    print("vector_name:", name)
+    print("vector_size:", config["size"])
+    print("distance:", config["distance"])
+print("reported_points_count:", result["points_count"])
+'
 
 curl --fail --silent \
   'http://127.0.0.1:6333/collections/lab4-minilm/points/count' \
   -H 'Content-Type: application/json' \
   -d '{"exact":true}' | python3 -m json.tool
+
+curl --fail --silent \
+  'http://127.0.0.1:6333/collections/lab4-minilm/points/scroll' \
+  -H 'Content-Type: application/json' \
+  -d '{"limit":100,"with_payload":true,"with_vector":false}' | \
+python3 -c '
+import json, sys
+points = json.load(sys.stdin)["result"]["points"]
+doc_ids = sorted(point["payload"]["metadata"]["doc_id"] for point in points)
+print("stored_doc_ids:", *doc_ids, sep="\n  ")
+print("unique_doc_ids:", len(set(doc_ids)))
+'
 ```
 
-Expected evidence is vector size 384 and exactly eight points. Keep the port
-forward running for later checks.
+The official server uses a named vector, so the vector configuration is a map
+whose value contains `size` and `distance`. Expected evidence is vector size
+384, exactly eight points, and eight unique document IDs. Keep the port forward
+running for later checks.
+
+If the exact count is nine but there are eight unique IDs because the partial
+attempt's `DOC-08-inference-pool` survived, remove one copy only after verifying
+that the two complete payloads are identical. The cleanup script in the
+experiment notes must abort for any other shape; do not start retrieval with a
+duplicate because it can occupy two of the five returned result slots.
 
 ## 7. Run the official-MCP retrieval queries
 
@@ -203,6 +329,17 @@ This is a retrieval-only evaluation. Search the indexed corpus, answer only from
 
 Record the tool trace, ordered IDs, answer, and elapsed time in ADR-005. Do not
 correct the agent or retry a failed query silently; record the failure first.
+Add one tab-separated row to `evaluation-results.tsv` after each run. For
+example:
+
+```text
+official	Q01	qdrant-find	DOC-01-qdrant-storage,DOC-07-abox-qdrant-mcp	1	0	3.42
+```
+
+The columns mean: configuration, query ID, tool observed in the trace, returned
+document IDs in tool order, whether every answer claim is grounded (`1` or
+`0`), number of unsupported factual claims, and elapsed seconds. The example is
+only a format illustration; record the actual trace and latency.
 
 ## 8. Switch to the Abox MCP toolset
 
@@ -237,7 +374,7 @@ qdrant-mcp => [vector_store vector_find]
 Start a new `retrieval-agent` chat and send:
 
 ```text
-Ingest the evaluation corpus from ConfigMap kagent/agentic-retrieval-corpus exactly as your system instructions specify. Report every stored doc_id and the number of successful vector_store calls.
+Ingest the evaluation corpus from ConfigMap kagent/agentic-retrieval-corpus exactly as your system instructions specify. Call vector_store strictly one at a time in DOC-01 through DOC-08 order, waiting for each result before starting the next call. Never issue parallel tool calls. Stop on the first error. Report every stored doc_id and the number of successful vector_store calls.
 ```
 
 Verify the collection:
@@ -292,9 +429,18 @@ Otherwise Flux will deliberately restore the published release version.
 
 ```bash
 kill "$QDRANT_PF_PID"
-flux resume kustomization releases -n flux-system
-flux reconcile kustomization releases -n flux-system --with-source
-flux get kustomizations -n flux-system
+kubectl -n flux-system patch kustomization releases \
+  --type=merge -p '{"spec":{"suspend":false}}'
+
+RELEASE_REQUEST="$(date -u +%s)-release"
+kubectl -n flux-system annotate kustomization releases \
+  reconcile.fluxcd.io/requestedAt="${RELEASE_REQUEST}" --overwrite
+kubectl -n flux-system wait kustomization/releases \
+  --for="jsonpath={.status.lastHandledReconcileAt}=${RELEASE_REQUEST}" \
+  --timeout=10m
+kubectl -n flux-system wait kustomization/releases \
+  --for=condition=Ready=True --timeout=10m
+kubectl -n flux-system get kustomization releases
 ```
 
 ## 12. Complete the records

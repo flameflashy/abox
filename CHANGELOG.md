@@ -24,8 +24,29 @@
   artifact rather than `releases-llmd-embeddings`. `k8s-agent` was Ready on
   `default-model-config`, while `retrieval-agent` was not Ready because it still
   referenced `gemini-gemini-2-5-flash`.
-- Switching to the required feature release, official MCP deployment, corpus
-  ingestion, and Agentic Retrieval measurements are pending. Expected
+- The OCI source was switched to `releases-llmd-embeddings:0.9.5` at digest
+  `sha256:c64296f47365d94ea69d771425afbff663e683ab32daed0b778338e2ba113335`.
+  Manual Kustomization reconciliation is still required because the Codespace
+  does not have the `flux` CLI.
+- A live `k8s-agent` chat reached OpenAI but returned 401 because the generated
+  Secret contained the published `OPENAI_API_KEY` placeholder. The runbook now
+  includes silent, out-of-band Secret replacement and agent rollout steps.
+- Created `default-model-config` with a valid credential through the kagent UI;
+  a new `kagent/k8s-agent` chat completed successfully.
+- Applied the official comparison configuration to `retrieval-agent`. It is
+  Ready on `default-model-config` with `qdrant-store` and `qdrant-find` from
+  `qdrant-official-mcp`.
+- Recorded the first official-MCP ingestion attempt: concurrent first writes
+  caused seven collection-creation conflicts and stored only
+  `DOC-08-inference-pool`. Updated the prompt and runbook to reset the dedicated
+  collection and serialize `qdrant-store` calls for the controlled retry.
+- The controlled retry reported eight successful sequential `qdrant-store`
+  calls in DOC-01 through DOC-08 order. Independent inspection confirmed a
+  384-dimensional named MiniLM vector with Cosine distance, nine total points,
+  and eight unique IDs. After verifying the two `DOC-08-inference-pool`
+  payloads were identical, removed one duplicate and confirmed the final count
+  of eight points and eight unique IDs.
+- Corpus ingestion and Agentic Retrieval measurements are pending. Expected
   dimensions and prepared manifests are not recorded as observed results.
 
 ## Unreleased — Laboratory 3 (2026-09-22)

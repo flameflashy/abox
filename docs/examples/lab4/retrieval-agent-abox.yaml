@@ -30,6 +30,11 @@ spec:
       - metadata.source: kagent/agentic-retrieval-corpus;
       - metadata.language: en.
 
+      Call vector_store strictly sequentially in DOC-01 through DOC-08 order.
+      Wait for each tool result before issuing the next call. Never send two or
+      more vector_store calls concurrently or in the same parallel tool batch.
+      Stop on the first error and report the failed doc_id without retrying it.
+
       Report the number of successful store calls and their document IDs. Do
       not retrieve while ingesting.
 

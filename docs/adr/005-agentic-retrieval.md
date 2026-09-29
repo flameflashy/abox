@@ -97,11 +97,41 @@ yet started from the required feature release:
 | `retrieval-agent` model | `gemini-gemini-2-5-flash`, Ready `Unknown` | Stale reference from the main 0.8.9 release |
 | `k8s-agent` model | `default-model-config`, Ready `True` | Correct |
 | default model | OpenAI `gpt-4.1-mini`, Accepted `True` | Valid shared reasoning model |
+| first `k8s-agent` chat | OpenAI 401; key shown as `OPENAI_A***_KEY` | Published placeholder reached the provider; live Secret needs a real credential |
 | existing MCP image | `ghcr.io/den-vasyliev/abox/qdrant-mcp:0.4.0` | Abox MCP, not the official Qdrant MCP |
 
-The release source must be corrected before measuring either retrieval
-configuration. Otherwise the agent-model failure would confound the embedding
-comparison.
+The OCI source was then switched successfully to
+`releases-llmd-embeddings:0.9.5@sha256:c64296f47365d94ea69d771425afbff663e683ab32daed0b778338e2ba113335`.
+The local `flux` CLI was unavailable, so the Kustomizations were not manually
+reconciled by that command and the live `retrieval-agent` still held its old
+model reference. The runbook therefore performs manual reconciliation through
+the Flux CRD annotations with `kubectl`. The model must be Ready before either
+retrieval configuration is measured; otherwise that failure would confound the
+embedding comparison.
+
+The missing `default-model-config` was subsequently created through the kagent
+UI with a valid OpenAI credential. A new `kagent/k8s-agent` chat completed
+successfully, which verifies the reasoning model path independently of the
+embedding and vector-store paths. No credential value is recorded in this ADR.
+
+The official comparison manifest was then applied to `retrieval-agent`. The
+Agent reported Ready `True`, referenced `default-model-config`, and exposed the
+official `qdrant-store` and `qdrant-find` tools from
+`qdrant-official-mcp`. Corpus ingestion and retrieval scoring remain pending.
+
+The first ingestion attempt issued the eight store calls concurrently. One call
+created `lab4-minilm` and stored `DOC-08-inference-pool`; the other seven failed
+with collection-already-exists conflicts. This is consistent with a race in the
+official server's automatic check-then-create path. This partial attempt is
+excluded from retrieval metrics. The dedicated collection will be reset and
+the retry will issue store calls strictly sequentially. The retry subsequently
+reported eight successful calls in DOC-01 through DOC-08 order with no errors.
+Independent inspection confirmed the named vector `fast-all-minilm-l6-v2` with
+size 384 and Cosine distance. It also found nine points but eight unique IDs:
+`DOC-08-inference-pool` appeared twice because the first attempt's successful
+point survived before the eight-point retry. The two complete payloads were
+verified as identical, one duplicate point was removed, and the final collection
+contained eight points with eight unique document IDs.
 
 ## Results
 
@@ -109,8 +139,8 @@ Do not replace `pending` until the corresponding run has been observed.
 
 | Metric | Official MiniLM MCP | Abox Nomic MCP |
 |---|---:|---:|
-| Indexed documents | pending | pending |
-| Collection vector size | pending (expected 384) | pending (expected 768) |
+| Indexed documents | 8 (exact count; 8 unique IDs) | pending |
+| Collection vector size | 384 (`fast-all-minilm-l6-v2`, Cosine) | pending (expected 768) |
 | Tool-use rate | pending | pending |
 | Hit@1 | pending | pending |
 | Hit@3 | pending | pending |

@@ -37,7 +37,9 @@ spec:
       - DOC-08-inference-pool.yaml
 
       If any key is missing or different, make no store calls and report the
-      mismatch. Otherwise, call vector_store exactly once for every data entry:
+      mismatch. The user's explicit ingestion request already authorizes this
+      verification and the store calls, so do not ask for confirmation.
+      Otherwise, call vector_store exactly once for every data entry:
 
       - information: the complete value, unchanged;
       - metadata.doc_id: the data key without the .yaml suffix;

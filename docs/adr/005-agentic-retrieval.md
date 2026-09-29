@@ -205,12 +205,12 @@ volume at `/qdrant/storage`. This run is a precondition failure and is excluded
 from all metrics. The retry requires an exact payload-to-ConfigMap comparison,
 not only matching IDs and point counts.
 
-The next retry uses a generated `DOCUMENTS_JSON` prompt built directly from the
-live ConfigMap. The retrieval Agent passes those JSON strings to `vector_store`
-without a delegation hop, and a separate verifier compares every stored
-`document` byte-for-byte with the ConfigMap before retrieval begins. This keeps
-the ingestion transport deterministic while still exercising the default Abox
-MCP store tool.
+The next retry uses a generated `DOCUMENTS_JSON` prompt built from the already
+measured `lab4-minilm` payloads. The retrieval Agent passes those JSON strings
+to `vector_store` without a delegation hop, and a separate verifier compares
+every `lab4-nomic` document byte-for-byte with its `lab4-minilm` counterpart
+before retrieval begins. This guarantees identical evaluation text while still
+exercising the default Abox MCP store tool.
 
 ## Consequences
 

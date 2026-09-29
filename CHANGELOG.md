@@ -69,11 +69,13 @@
   confirmed that old manifest text had been stored under the expected IDs, so
   the run was excluded from metrics.
 - Added an exact corpus verifier that compares every indexed `document` payload
-  with the live ConfigMap and reports SHA-256 fingerprints. Strengthened both
-  ingestion prompts with live-read requirements and content sentinels.
-- Added a direct ingestion-prompt generator that JSON-encodes the live
-  ConfigMap values. This removes the unreliable Agent delegation hop while
-  retaining eight sequential calls to the selected MCP store tool.
+  with either the live ConfigMap or another Qdrant collection and reports
+  SHA-256 fingerprints. Strengthened both ingestion prompts with live-read
+  requirements and content sentinels.
+- Added a direct ingestion-prompt generator that JSON-encodes the official
+  collection payloads. This removes the unreliable Agent delegation
+  hop, guarantees the same document bytes for both embedders, and retains eight
+  sequential calls to the selected MCP store tool.
 - Abox Agentic Retrieval measurements are pending.
 
 ## Unreleased — Laboratory 3 (2026-09-22)

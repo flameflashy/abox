@@ -401,12 +401,15 @@ kubectl -n kagent get configmap agentic-retrieval-corpus \
 The keys must match `DOC-01-qdrant-storage.yaml` through the predefined
 `DOC-08-inference-pool.yaml` list in the Agent prompt. Stop if any key differs.
 
-Generate a direct ingestion prompt from the live ConfigMap. JSON encoding keeps
-the exact strings and avoids relying on another Agent to reconstruct the
-manifests:
+Generate a direct ingestion prompt from the already measured official
+collection. This guarantees that the Abox MCP receives the exact document
+bytes used by the MiniLM run:
 
 ```bash
 python3 scripts/build-agentic-ingestion-prompt.py \
+  --qdrant-url http://127.0.0.1:6333 \
+  --source-collection lab4-minilm \
+  --source-layout official \
   --tool vector_store > /tmp/lab4-abox-ingestion.txt
 cat /tmp/lab4-abox-ingestion.txt
 ```
@@ -455,14 +458,16 @@ Expected evidence is vector size 768. Eight short inputs should produce eight
 points and eight unique IDs; if chunking creates more, record the actual count
 and inspect why.
 
-Compare every stored document with the current ConfigMap. This catches a stale
-or reconstructed manifest even when its `doc_id` is correct:
+Compare every stored document with the official collection. This catches a
+stale or reconstructed manifest even when its `doc_id` is correct:
 
 ```bash
 python3 scripts/verify-agentic-corpus.py \
   --qdrant-url http://127.0.0.1:6333 \
   --collection lab4-nomic \
-  --layout abox
+  --layout abox \
+  --reference-collection lab4-minilm \
+  --reference-layout official
 ```
 
 Accept the corpus only when every row says `MATCH` and the final line is

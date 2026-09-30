@@ -1,0 +1,108 @@
+{
+  "schema_version": "1.0",
+  "corpus_name": "films-1990s-2000s",
+  "language": "en",
+  "description": "An educational corpus for semantic retrieval of facts and plot summaries about films from the 1990s and 2000s.",
+  "documents": [
+    {
+      "id": "matrix-1999",
+      "document": "The Matrix is a 1999 science-fiction action film directed by Lana and Lilly Wachowski. Programmer Neo discovers that his familiar world is a computer simulation and joins a human resistance against machines. The main characters are Neo, Morpheus, and Trinity.",
+      "metadata": {"title": "The Matrix", "year": 1999, "decade": "1990s", "directors": ["Lana Wachowski", "Lilly Wachowski"], "genres": ["science fiction", "action"], "country": "United States"}
+    },
+    {
+      "id": "matrix-reloaded-2003",
+      "document": "The Matrix Reloaded is a 2003 science-fiction action film directed by Lana and Lilly Wachowski. It is the second film in the Matrix trilogy. The people of Zion prepare for a machine attack while Neo seeks the Architect of the Matrix to understand the limits of his choice.",
+      "metadata": {"title": "The Matrix Reloaded", "year": 2003, "decade": "2000s", "directors": ["Lana Wachowski", "Lilly Wachowski"], "genres": ["science fiction", "action"], "series": "The Matrix", "part": 2}
+    },
+    {
+      "id": "matrix-revolutions-2003",
+      "document": "The Matrix Revolutions is the third and final film in the Matrix trilogy, released in 2003 and directed by Lana and Lilly Wachowski. Neo tries to end the war between humans and machines while the defenders of Zion repel an assault.",
+      "metadata": {"title": "The Matrix Revolutions", "year": 2003, "decade": "2000s", "directors": ["Lana Wachowski", "Lilly Wachowski"], "genres": ["science fiction", "action"], "series": "The Matrix", "part": 3}
+    },
+    {
+      "id": "shawshank-redemption-1994",
+      "document": "The Shawshank Redemption is a 1994 drama directed by Frank Darabont and based on a Stephen King novella. Banker Andy Dufresne is sent to Shawshank prison for a murder he says he did not commit. His friendship with Ellis Redding and his persistence lead to an escape and a new life.",
+      "metadata": {"title": "The Shawshank Redemption", "year": 1994, "decade": "1990s", "director": "Frank Darabont", "genres": ["drama"], "country": "United States"}
+    },
+    {
+      "id": "forrest-gump-1994",
+      "document": "Forrest Gump is a 1994 comedy-drama directed by Robert Zemeckis. Kind-hearted Forrest, who has a low IQ, unexpectedly takes part in major moments of American history and becomes a runner, soldier, and businessman. Throughout his life, he loves Jenny Curran.",
+      "metadata": {"title": "Forrest Gump", "year": 1994, "decade": "1990s", "director": "Robert Zemeckis", "genres": ["drama", "comedy"], "country": "United States"}
+    },
+    {
+      "id": "pulp-fiction-1994",
+      "document": "Pulp Fiction is a 1994 crime drama directed by Quentin Tarantino. Several non-linear stories in Los Angeles connect hitmen Vincent Vega and Jules Winnfield, boxer Butch, and gangster's wife Mia Wallace.",
+      "metadata": {"title": "Pulp Fiction", "year": 1994, "decade": "1990s", "director": "Quentin Tarantino", "genres": ["crime", "drama"], "country": "United States"}
+    },
+    {
+      "id": "fight-club-1999",
+      "document": "Fight Club is a 1999 psychological drama directed by David Fincher and based on Chuck Palahniuk's novel. An unnamed office worker meets Tyler Durden, and together they create an underground fight club that grows into a dangerous movement.",
+      "metadata": {"title": "Fight Club", "year": 1999, "decade": "1990s", "director": "David Fincher", "genres": ["drama", "thriller"], "country": "United States"}
+    },
+    {
+      "id": "truman-show-1998",
+      "document": "The Truman Show is a 1998 satirical drama directed by Peter Weir. Truman Burbank gradually suspects that his town and his entire life are a round-the-clock reality show and that everyone around him is an actor.",
+      "metadata": {"title": "The Truman Show", "year": 1998, "decade": "1990s", "director": "Peter Weir", "genres": ["drama", "satire", "science fiction"], "country": "United States"}
+    },
+    {
+      "id": "sixth-sense-1999",
+      "document": "The Sixth Sense is a 1999 psychological thriller directed by M. Night Shyamalan. Child psychologist Malcolm Crowe helps Cole Sear, a boy who says he can see dead people.",
+      "metadata": {"title": "The Sixth Sense", "year": 1999, "decade": "1990s", "director": "M. Night Shyamalan", "genres": ["thriller", "drama"], "country": "United States"}
+    },
+    {
+      "id": "green-mile-1999",
+      "document": "The Green Mile is a 1999 fantasy drama directed by Frank Darabont and based on a Stephen King novel. Guard Paul Edgecomb works on death row and meets prisoner John Coffey, who has an extraordinary healing gift.",
+      "metadata": {"title": "The Green Mile", "year": 1999, "decade": "1990s", "director": "Frank Darabont", "genres": ["drama", "fantasy"], "country": "United States"}
+    },
+    {
+      "id": "gladiator-2000",
+      "document": "Gladiator is a 2000 historical drama directed by Ridley Scott. Roman general Maximus becomes a slave and gladiator after the death of his family and seeks revenge on Emperor Commodus.",
+      "metadata": {"title": "Gladiator", "year": 2000, "decade": "2000s", "director": "Ridley Scott", "genres": ["historical drama", "action"], "country": "United States"}
+    },
+    {
+      "id": "memento-2000",
+      "document": "Memento is a 2000 neo-noir thriller directed by Christopher Nolan. Leonard Shelby has anterograde amnesia and cannot form new memories, so he uses photographs and tattoos while searching for his wife's killer. The story is told in reverse chronology.",
+      "metadata": {"title": "Memento", "year": 2000, "decade": "2000s", "director": "Christopher Nolan", "genres": ["thriller", "neo-noir"], "country": "United States"}
+    },
+    {
+      "id": "lotr-fellowship-2001",
+      "document": "The Lord of the Rings: The Fellowship of the Ring is a 2001 fantasy adventure film directed by Peter Jackson. Hobbit Frodo Baggins travels with the Fellowship of the Ring to destroy the One Ring in Mordor.",
+      "metadata": {"title": "The Lord of the Rings: The Fellowship of the Ring", "year": 2001, "decade": "2000s", "director": "Peter Jackson", "genres": ["fantasy", "adventure"], "series": "The Lord of the Rings", "part": 1}
+    },
+    {
+      "id": "lotr-two-towers-2002",
+      "document": "The Lord of the Rings: The Two Towers is the second film in Peter Jackson's trilogy, released in 2002. Frodo and Sam continue toward Mordor while Aragorn, Legolas, and Gimli help defend Rohan.",
+      "metadata": {"title": "The Lord of the Rings: The Two Towers", "year": 2002, "decade": "2000s", "director": "Peter Jackson", "genres": ["fantasy", "adventure"], "series": "The Lord of the Rings", "part": 2}
+    },
+    {
+      "id": "lotr-return-king-2003",
+      "document": "The Lord of the Rings: The Return of the King is the third film in Peter Jackson's trilogy, released in 2003. The peoples of Middle-earth oppose Sauron while Frodo and Sam reach Mount Doom to destroy the One Ring.",
+      "metadata": {"title": "The Lord of the Rings: The Return of the King", "year": 2003, "decade": "2000s", "director": "Peter Jackson", "genres": ["fantasy", "adventure"], "series": "The Lord of the Rings", "part": 3}
+    },
+    {
+      "id": "eternal-sunshine-2004",
+      "document": "Eternal Sunshine of the Spotless Mind is a 2004 romantic science-fiction drama directed by Michel Gondry. Joel Barish learns that Clementine erased memories of their relationship and undergoes the same procedure, but tries to keep his most precious memories during it.",
+      "metadata": {"title": "Eternal Sunshine of the Spotless Mind", "year": 2004, "decade": "2000s", "director": "Michel Gondry", "genres": ["romance", "drama", "science fiction"], "country": "United States"}
+    },
+    {
+      "id": "departed-2006",
+      "document": "The Departed is a 2006 crime thriller directed by Martin Scorsese. Boston police have an informant in the mafia, and the mafia has its own agent in the police; Billy Costigan and Colin Sullivan try to expose each other.",
+      "metadata": {"title": "The Departed", "year": 2006, "decade": "2000s", "director": "Martin Scorsese", "genres": ["crime", "thriller"], "country": "United States"}
+    },
+    {
+      "id": "dark-knight-2008",
+      "document": "The Dark Knight is a 2008 superhero crime thriller directed by Christopher Nolan. Batman, Commissioner Gordon, and prosecutor Harvey Dent try to stop the Joker, who creates chaos in Gotham.",
+      "metadata": {"title": "The Dark Knight", "year": 2008, "decade": "2000s", "director": "Christopher Nolan", "genres": ["superhero", "crime", "thriller"], "country": "United States"}
+    },
+    {
+      "id": "walle-2008",
+      "document": "WALL-E is a 2008 animated science-fiction film directed by Andrew Stanton. The lonely waste-collecting robot WALL-E remains on an abandoned Earth and meets the explorer robot EVE before travelling into space.",
+      "metadata": {"title": "WALL-E", "year": 2008, "decade": "2000s", "director": "Andrew Stanton", "genres": ["animation", "science fiction", "adventure"], "country": "United States"}
+    },
+    {
+      "id": "inglourious-basterds-2009",
+      "document": "Inglourious Basterds is a 2009 war film directed by Quentin Tarantino. During World War II, a group of American soldiers led by Lieutenant Aldo Raine hunts Nazis while Shosanna Dreyfus prepares her own revenge in Paris.",
+      "metadata": {"title": "Inglourious Basterds", "year": 2009, "decade": "2000s", "director": "Quentin Tarantino", "genres": ["war", "drama"], "country": "United States", "alternate_history": true}
+    }
+  ]
+}

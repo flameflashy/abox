@@ -1,0 +1,16 @@
+{
+  "suite_name": "movie-retrieval-baseline",
+  "purpose": "Control queries for measuring whether memory returns a relevant document in the top 3 results.",
+  "cases": [
+    {"id": "q01", "query": "Who directed the first Matrix film?", "expected_document_ids": ["matrix-1999"], "expected_answer_contains": ["Lana", "Lilly", "Wachowski"]},
+    {"id": "q02", "query": "Which film features a protagonist who cannot form new memories and uses tattoos?", "expected_document_ids": ["memento-2000"], "expected_answer_contains": ["Leonard", "tattoos"]},
+    {"id": "q03", "query": "Name the second Matrix trilogy film and its release year.", "expected_document_ids": ["matrix-reloaded-2003"], "expected_answer_contains": ["Reloaded", "2003"]},
+    {"id": "q04", "query": "Which film tells the story of banker Andy Dufresne in prison?", "expected_document_ids": ["shawshank-redemption-1994"], "expected_answer_contains": ["Shawshank", "Andy"]},
+    {"id": "q05", "query": "In which film is the protagonist's whole life a reality television show?", "expected_document_ids": ["truman-show-1998"], "expected_answer_contains": ["Truman"]},
+    {"id": "q06", "query": "Find the film about the gladiator Maximus and name its director.", "expected_document_ids": ["gladiator-2000"], "expected_answer_contains": ["Ridley Scott"]},
+    {"id": "q07", "query": "Which Lord of the Rings installment was released in 2002?", "expected_document_ids": ["lotr-two-towers-2002"], "expected_answer_contains": ["The Two Towers"]},
+    {"id": "q08", "query": "In which film does a waste-collecting robot meet EVE?", "expected_document_ids": ["walle-2008"], "expected_answer_contains": ["WALL-E"]},
+    {"id": "q09", "query": "Who directed The Dark Knight, and who is its main antagonist?", "expected_document_ids": ["dark-knight-2008"], "expected_answer_contains": ["Christopher Nolan", "Joker"]},
+    {"id": "q10", "query": "Find the film in which a psychologist helps a boy who sees dead people.", "expected_document_ids": ["sixth-sense-1999"], "expected_answer_contains": ["The Sixth Sense", "Cole"]}
+  ]
+}

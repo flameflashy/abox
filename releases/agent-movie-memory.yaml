@@ -1,0 +1,48 @@
+# Lab 5: expose the in-cluster xray-memory MCP endpoint to kagent and bind
+# only read tools to a dedicated movie-retrieval agent. The xray service itself
+# remains cluster-internal; kagent reaches it through Kubernetes DNS.
+apiVersion: kagent.dev/v1alpha2
+kind: RemoteMCPServer
+metadata:
+  name: xray-memory
+  namespace: kagent
+spec:
+  description: Semantic and graph retrieval over the xray-memory movie catalog.
+  protocol: STREAMABLE_HTTP
+  url: http://xray-memory.xray-memory:8085/mcp
+  timeout: 30s
+---
+apiVersion: kagent.dev/v1alpha2
+kind: Agent
+metadata:
+  name: movie-memory-agent
+  namespace: kagent
+spec:
+  type: Declarative
+  description: Answers questions about films using the Lab 5 xray-memory catalog.
+  declarative:
+    modelConfig: default-model-config
+    stream: true
+    systemMessage: |
+      You are a movie research assistant. Answer only from the xray-memory
+      catalog map named "movies-90s-2000s".
+
+      For every factual question, first call search_graph with
+      map="movies-90s-2000s". Use the returned qualified node name (qn) with
+      get_graph_node whenever the preview does not fully establish the answer
+      or the question asks about a relation such as a sequel.
+
+      Answer concisely and state the film title that supports the answer. If
+      the catalog has no relevant result, say that the requested fact is not in
+      the movie catalog. Do not use outside knowledge. Do not create, update,
+      remember, or forget any data.
+    tools:
+    - type: McpServer
+      mcpServer:
+        apiGroup: kagent.dev
+        kind: RemoteMCPServer
+        name: xray-memory
+        toolNames:
+        - search_graph
+        - get_graph_node
+        - get_graph_stats

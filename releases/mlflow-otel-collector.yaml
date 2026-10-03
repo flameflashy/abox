@@ -112,8 +112,8 @@ spec:
             insecure: true
           headers:
             x-mlflow-experiment-id: "2"
-        otlp_grpc/phoenix:
-          endpoint: phoenix-svc.phoenix.svc.cluster.local:4317
+        otlp_http/phoenix:
+          endpoint: http://phoenix-svc.phoenix.svc.cluster.local:6006
           tls:
             insecure: true
       processors:
@@ -158,4 +158,4 @@ spec:
               - resource/phoenix-kagent
             exporters:
               - otlp_http/mlflow-kagent
-              - otlp_grpc/phoenix
+              - otlp_http/phoenix

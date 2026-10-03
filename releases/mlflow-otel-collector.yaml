@@ -1,4 +1,6 @@
-# Bridges triage-core's and otel-demo's OTel traces into MLflow Tracing.
+# Bridges triage-core's, otel-demo's and kagent's OTel traces into GenAI
+# observability backends. MLflow receives all three routed sources, while
+# kagent traces are additionally fanned out to Phoenix for the lab comparison.
 # triage-core's own exporter only speaks OTLP/gRPC (releases/triage-core.yaml's
 # otelTracing comment: "grpc is the only protocol the exporter build
 # supports"), and MLflow's tracking server only accepts OTLP/HTTP at
@@ -12,11 +14,11 @@
 # experiment.
 #
 # One shared receiver, split into each source's own experiment by the
-# routing connector -- otherwise both land in whichever experiment ID the
-# single exporter's header names, no per-source separation. Deliberately no
-# default_pipelines/catch-all bucket: only these two sources exist today, and
-# a third source landing here unrouted should surface as a visibly dropped
-# span (a "dropped" debug log), not silently join one of the two experiments
+# routing connector -- otherwise sources land in whichever experiment ID the
+# single exporter's header names, with no per-source separation. Deliberately no
+# default_pipelines/catch-all bucket: only these three sources are expected, and
+# a fourth source landing here unrouted should surface as a visibly dropped
+# span (a "dropped" debug log), not silently join an experiment
 # it isn't from. triage-core is matched on service.name ("triage-core", set
 # by releases/triage-core.yaml's otelTracing.serviceName -- it sends directly
 # to this collector with no k8s_attributes enrichment in front of it).
@@ -25,12 +27,17 @@
 # its own k8s_attributes preset before forwarding here, and its span
 # service.name values are the individual microservices (frontend, checkout,
 # ...), not "otel-demo" itself.
+# kagent is also forwarded by the otel-demo Collector, so it already carries
+# k8s.namespace.name="kagent" when it reaches this bridge.
 #
 # Experiment IDs are assigned by mlflow at creation time, not deterministic --
 # these were created once via POST /api/2.0/mlflow/experiments/create (name:
-# "triage-core" -> "2", name: "otel-demo" -> "3") and hardcoded below. Redo
-# that call and update these if the mlflow-mlflow PVC is ever wiped (a fresh
-# backend store re-creates "Default" as "0" but not these).
+# "triage-core" -> "2", name: "otel-demo" -> "3") and hardcoded below. Lab 7
+# currently reuses ID "2" for the `kagent-lab7` experiment because Triage is
+# unavailable and explicitly out of scope. Give kagent a dedicated ID before
+# enabling Triage. Redo the create call and update these IDs if the
+# mlflow-mlflow PVC is ever wiped (a fresh backend store re-creates "Default"
+# as "0" but not these).
 #
 # Reuses the open-telemetry HelmRepository releases/opentelemetry-demo.yaml
 # already declares in flux-system rather than redeclaring it.
@@ -81,6 +88,8 @@ spec:
               pipelines: [traces/triage-core]
             - statement: route() where resource.attributes["k8s.namespace.name"] == "otel-demo"
               pipelines: [traces/otel-demo]
+            - statement: route() where resource.attributes["k8s.namespace.name"] == "kagent"
+              pipelines: [traces/kagent]
       exporters:
         # otlp_http, not otlphttp -- the chart's rewriteDeprecatedComponentNames
         # (on by default) silently renames the old identifier at render time;
@@ -97,6 +106,24 @@ spec:
             insecure: true
           headers:
             x-mlflow-experiment-id: "3"
+        otlp_http/mlflow-kagent:
+          endpoint: http://mlflow-mlflow.mlflow.svc.cluster.local:5000
+          tls:
+            insecure: true
+          headers:
+            x-mlflow-experiment-id: "2"
+        otlp_grpc/phoenix:
+          endpoint: phoenix-svc.phoenix.svc.cluster.local:4317
+          tls:
+            insecure: true
+      processors:
+        # Phoenix uses this resource attribute to group traces into a named
+        # project. It is scoped to the downstream kagent pipeline only.
+        resource/phoenix-kagent:
+          attributes:
+            - key: openinference.project.name
+              value: kagent-lab7
+              action: upsert
       # jaeger/zipkin removed outright, not just dropped from the traces
       # pipeline below -- the collector refuses to start with a receiver
       # defined but not referenced by any pipeline.
@@ -124,3 +151,11 @@ spec:
               - routing
             exporters:
               - otlp_http/mlflow-otel-demo
+          traces/kagent:
+            receivers:
+              - routing
+            processors:
+              - resource/phoenix-kagent
+            exporters:
+              - otlp_http/mlflow-kagent
+              - otlp_grpc/phoenix

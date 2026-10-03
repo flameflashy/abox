@@ -68,6 +68,20 @@ spec:
     # or app.kubernetes.io/version, which the postRenderer above handles.
     # Postgres and the subcharts pin their own images and are unaffected.
     tag: "0.10.1"
+    # Export controller and agent-runtime traces through the demo Collector.
+    # Sensitive content is enabled for the lab so GenAI backends can compare
+    # prompts, responses and tool details. Do not use production secrets or
+    # personal data in test conversations.
+    otel:
+      captureSensitiveContent: true
+      tracing:
+        enabled: true
+        exporter:
+          otlp:
+            endpoint: http://otel-collector.otel-demo.svc.cluster.local:4317
+            protocol: grpc
+            timeout: 15000
+            insecure: true
     controller:
       image:
         tag: "0.10.1"

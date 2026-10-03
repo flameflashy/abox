@@ -66,6 +66,15 @@ spec:
     # explicit or the render fails outright.
     image:
       repository: otel/opentelemetry-collector-contrib
+    # Phoenix authentication is enabled in this deployment. Keep the API key
+    # outside Git and expose it to the Collector from a namespace-local Secret.
+    # The Secret must contain a PHOENIX_API_KEY entry.
+    extraEnvs:
+      - name: PHOENIX_API_KEY
+        valueFrom:
+          secretKeyRef:
+            name: phoenix-otel-credentials
+            key: PHOENIX_API_KEY
     # Jaeger/Zipkin ingestion ports are chart defaults, enabled regardless of
     # whether those receivers exist in config. Disabled to match the trimmed
     # receiver set below instead of listening on dead ports.
@@ -114,6 +123,8 @@ spec:
             x-mlflow-experiment-id: "2"
         otlp_http/phoenix:
           endpoint: http://phoenix-svc.phoenix.svc.cluster.local:6006
+          headers:
+            authorization: "Bearer ${env:PHOENIX_API_KEY}"
           tls:
             insecure: true
       processors:

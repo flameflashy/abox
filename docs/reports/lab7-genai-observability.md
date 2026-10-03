@@ -1,7 +1,7 @@
 # Laboratory 7: GenAI Observability Comparison
 
 - Date: 2026-10-03
-- Status: In progress
+- Status: Complete
 - Agent under test: kagent `k8s-agent`
 - MLflow experiment: `kagent-lab7` (experiment ID `2`)
 - Phoenix project: `kagent-lab7`
@@ -53,31 +53,47 @@ storing generic OpenTelemetry spans.
 
 ### Phoenix
 
-No traces were visible in Phoenix at the time of the same test, even though the
-MLflow Collector configuration contained the `otlp_grpc/phoenix` exporter and
-the `traces/kagent` pipeline referenced it. Therefore the experiment currently
-proves successful trace generation and delivery to MLflow, but does not yet
-prove successful delivery to Phoenix.
+Phoenix initially returned HTTP `401 Unauthorized` for `POST /v1/traces`.
+This proved that service discovery, endpoint selection, and OTLP/HTTP transport
+were working, while authentication was missing. A Phoenix System API key was
+stored in Kubernetes Secret `mlflow/phoenix-otel-credentials`, injected into
+the Collector, and sent in the lowercase `authorization: Bearer ...` exporter
+header. The key itself was not stored in Git.
 
-This is an active diagnostic item. The Phoenix result must not be interpreted
-as a product comparison until exporter logs, endpoint reachability, protocol
-compatibility, and project assignment have been checked.
+After authentication and a new agent request, Phoenix accepted the telemetry
+and automatically created project `kagent-lab7`; no project ID or prior manual
+project creation was required. The UI displayed trace volume and latency and
+included an agent request with approximately 1.5 seconds latency and 4,643
+tokens.
 
-## Preliminary comparison
+![Phoenix trace list and latency charts](../assets/lab7/phoenix-traces.png)
 
-| Solution | Result so far | GenAI value observed |
+The trace arrived successfully, but many child spans were classified as kind
+`unknown` and did not populate the input, output, or token columns. This is a
+semantic-mapping limitation of the current kagent spans, not a transport
+failure.
+
+## Comparison
+
+| Solution | Observed result | GenAI value and usability |
 |---|---|---|
 | Standard OpenTelemetry | Agent spans are generated and routed through OTLP | Vendor-neutral collection and routing; raw span-level evidence |
-| MLflow | Traces visible in experiment `kagent-lab7` | Trace navigation, token usage, latency, errors, model attribution, and estimated cost |
-| Phoenix | No traces visible yet | Not yet assessable; ingestion must be repaired or verified first |
+| MLflow | Traces visible in experiment `kagent-lab7` | Clear experiment-oriented navigation; token usage, latency, errors, model attribution, and estimated cost were visible with little additional interpretation |
+| Phoenix | Traces visible in project `kagent-lab7` after adding API-key authentication | Trace volume and latency plus datasets, evaluators, annotations, prompts, and playground features; current generic child spans were less immediately informative |
 
-## Remaining work
+## Conclusion
 
-1. Inspect the MLflow Collector exporter logs for Phoenix delivery failures.
-2. Verify OTLP/gRPC connectivity to `phoenix-svc.phoenix.svc.cluster.local:4317`.
-3. Confirm that Phoenix accepts the emitted OpenTelemetry schema and assigns
-   spans to project `kagent-lab7`.
-4. Capture matching Phoenix trace and project screenshots after ingestion works.
-5. Compare trace hierarchy, prompts/responses, tool calls, token accounting,
-   latency, errors, evaluation features, and usability across all three tools.
+OpenTelemetry is the foundation rather than a competing GenAI UI: it provides
+portable instrumentation and lets one agent feed multiple analysis backends.
+Both MLflow and Phoenix accepted the kagent traces after their destination-
+specific routing and authentication requirements were configured.
 
+For the operator performing this laboratory, MLflow looked more convenient.
+Its experiment page exposed the relevant GenAI measurements together and made
+token consumption, model use, cost, latency, and failures easier to understand
+at a glance. Phoenix offers stronger-looking workflows around datasets,
+evaluators, annotations, prompt management, and playground experiments, but
+the current kagent/OpenTelemetry semantics did not populate all of its trace
+columns. The preference is therefore scoped to inspecting this agent with the
+telemetry currently emitted, not a general conclusion that MLflow is superior
+for every GenAI observability use case.
